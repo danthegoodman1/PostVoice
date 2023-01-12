@@ -1,0 +1,22 @@
+version: '3'
+
+dotenv: ['.env']
+
+vars:
+  sql_migrate_version: v1.2.0
+  sql_c_version: v1.16.0
+
+env:
+  DOCKER_BUILDKIT: "1"
+
+tasks:
+
+  default:
+    cmds:
+    - go run .
+
+  docker:
+    cmds:
+      - docker build . -t us-east1-docker.pkg.dev/tangia-prod/inner-thoughts/inner-thoughts:latest --ssh default
+      - gcloud auth configure-docker us-east1-docker.pkg.dev --account=$GCP_ACCOUNT
+      - docker push us-east1-docker.pkg.dev/tangia-prod/inner-thoughts/inner-thoughts:latest
