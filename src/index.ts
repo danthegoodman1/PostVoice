@@ -10,7 +10,7 @@ import { serve } from "inngest/express"
 import { logger } from "./logger"
 import { ConnectDB } from "./db"
 import Webflow from "webflow-api"
-import { HandleWebflowItemCreation, inngest, RegisterWebflowWebhooks } from "./inngest"
+import { HandleWebflowCollectionItemCreation, inngest, RegisterWebflowWebhooks } from "./inngest"
 
 const listenPort = process.env.PORT || "8080"
 
@@ -57,7 +57,7 @@ async function main() {
     res.sendStatus(200)
   })
 
-  const inngestMiddleware = serve("PostVoice", [HandleWebflowItemCreation, RegisterWebflowWebhooks])
+  const inngestMiddleware = serve("PostVoice", [HandleWebflowCollectionItemCreation, RegisterWebflowWebhooks])
   app.use("/inngest", inngestMiddleware)
 
   // Webflow endpoints

@@ -31,7 +31,7 @@ export const RegisterWebflowWebhooks = inngest.createStepFunction("Webflow Regis
   logger.debug("done RegisterWebflowWebhooks")
 })
 
-export const HandleWebflowItemCreation = inngest.createStepFunction("Webflow Collection Item Creation", "api/webflow.collection_item_created", ({ event, tools }) => {
+export const HandleWebflowCollectionItemCreation = inngest.createStepFunction("Webflow Collection Item Creation", "api/webflow.collection_item_created", ({ event, tools }) => {
   logger.debug('starting HandleWebflowItemCreation step function')
   // Record the new item in DB
   // Check if we already have the item in the DB?
