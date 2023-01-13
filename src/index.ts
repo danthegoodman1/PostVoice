@@ -59,18 +59,26 @@ async function main() {
   // Webflow endpoints
   const webflowRouter = express.Router()
   webflowRouter.get("/authorize", (req, res) => {
-    const url = webflow.authorizeUrl({ client_id: process.env.WEBFLOW_CLIENT_ID! })
+    const url = webflow.authorizeUrl({
+      client_id: process.env.WEBFLOW_CLIENT_ID!,
+      redirect_uri: process.env.API_URL + "/webflow/token"
+    })
     res.redirect(url)
   })
-  webflowRouter.post("/token", async (req: Request<{}, {}, {code: string}>, res: Response) => {
+  webflowRouter.get("/token", async (req: Request<{}, {}, {}, {code: string}>, res: Response) => {
     const { access_token } = await webflow.accessToken({
       client_id: process.env.WEBFLOW_CLIENT_ID!,
       client_secret: process.env.WEBFLOW_CLIENT_SECRET!,
-      code: req.body.code,
+      code: req.query.code,
+      redirect_uri: process.env.API_URL + "/webflow/token"
     })
 
     const app = new Webflow({ token: access_token });
     const { user } = await app.authenticatedUser()
+    console.log(user)
+    const sites = await app.sites()
+    console.log(sites)
+    res.sendStatus(200)
   })
   app.use("/webflow", webflowRouter)
 
