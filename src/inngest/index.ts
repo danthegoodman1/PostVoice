@@ -1,10 +1,11 @@
-import { Inngest } from "inngest";
-import Webflow from "webflow-api";
-import { logger, logMsgKey } from "../logger";
+import { Inngest } from "inngest"
+import Webflow from "webflow-api"
+import { logger, logMsgKey } from "../logger"
+import md5 from 'md5'
 
 export const inngest = new Inngest({ name: "PostVoice" })
 
-export const RegisterWebflowWebhooks = inngest.createStepFunction("Webflow Register Webhooks", "api/webflow.register_webhooks", ({ event, tools }) => {
+export const RegisterWebflowWebhooks = inngest.createStepFunction("Webflow Register Webhooks", "api/webflow.register_webhooks", async ({ event, tools }) => {
   logger.debug({
     [logMsgKey]: "running RegisterWebflowWebhooks",
     data: event.data
@@ -31,8 +32,28 @@ export const RegisterWebflowWebhooks = inngest.createStepFunction("Webflow Regis
   logger.debug("done RegisterWebflowWebhooks")
 })
 
-export const HandleWebflowCollectionItemCreation = inngest.createStepFunction("Webflow Collection Item Creation", "api/webflow.collection_item_created", ({ event, tools }) => {
-  logger.debug('starting HandleWebflowItemCreation step function')
+export const HandleWebflowCollectionItemCreation = inngest.createStepFunction("Webflow Collection Item Creation", "api/webflow.collection_item_created", async ({ event, tools }) => {
+  logger.debug('running HandleWebflowItemCreation step function')
+  // TESTING STUFF
+  const wf = new Webflow({ token: event.data.encWfToken }) // TODO: decrypt
+  const cmsItem = await wf.item({
+    collectionId: event.data.whPayload._cid,
+    itemId: event.data.whPayload._id
+  })
+  console.log('cmsItem:', cmsItem)
+
+  const originalHash = tools.run("Get original content hash", async () => {
+    const wf = new Webflow({ token: event.data.encWfToken }) // TODO: decrypt
+    const cmsItem = await wf.item({
+      collectionId: event.data.whPayload._cid,
+      itemId: event.data.whPayload._id
+    })
+    return md5((cmsItem as any)['post-body'])
+  })
+
+  console.log('got original hash', originalHash)
+
+  // TODO: actual stuff
   // Record the new item in DB
   // Check if we already have the item in the DB?
   // Fetch item content and calculate hash (tools.run)

@@ -101,7 +101,8 @@ async function main() {
         await inngest.send("api/webflow.collection_item_created", {
           data: {
             whPayload: req.body,
-            siteID: req.params.siteID
+            siteID: req.params.siteID,
+            encWfToken: process.env.TEMP_TOKEN // will be provided by DB lookup
           }
         })
         logger.debug('sent inngest event')
@@ -110,7 +111,8 @@ async function main() {
         await inngest.send("api/webflow.collection_item_changed", {
           data: {
             whPayload: req.body,
-            siteID: req.params.siteID
+            siteID: req.params.siteID,
+            encWfToken: process.env.TEMP_TOKEN // will be provided by DB lookup
           }
         })
         break;
