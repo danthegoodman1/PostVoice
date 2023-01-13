@@ -6,16 +6,18 @@ COPY . .
 
 RUN npm i
 
-RUN npm build
+RUN npm run build
 
 FROM node:18-alpine
 
-COPY --from=build /app/build /app/
-COPY --from=build /app/package.json /app/
-COPY --from=build /app/package-lock.json /app/
+WORKDIR /app
 
-RUN npm ci --production
+COPY --from=build /app/build /app/
+COPY --from=build /app/package.json /app
+COPY --from=build /app/package-lock.json /app
+
+RUN npm ci --omit=dev
 
 RUN apk add ffmpeg --no-cache
 
-ENTRYPOINT ["node", "/app/index.js"]
+ENTRYPOINT ["node", "/app/build/index.js"]
