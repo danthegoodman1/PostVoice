@@ -10,6 +10,7 @@ import { serve } from "inngest/express"
 import { logger } from "./logger"
 import { ConnectDB } from "./db"
 import Webflow from "webflow-api"
+import { HandleWebflowItemCreation, inngest, RegisterWebflowWebhooks } from "./inngest"
 
 const listenPort = process.env.PORT || "8080"
 
@@ -34,14 +35,17 @@ async function main() {
     process.exit(1)
   }
 
-  app.use((req: any, res, next) => {
-    const reqID = uuidv4()
-    req.reqID = reqID
-    req.log = log.child({ req_id: reqID }, true)
-    req.log.info({ req })
-    res.on("finish", () => req.log.info({ res }))
-    next()
-  })
+  if (process.env.HTTP_LOG === "1") {
+    logger.debug("using HTTP logger")
+    app.use((req: any, res, next) => {
+      const reqID = uuidv4()
+      req.reqID = reqID
+      req.log = log.child({ req_id: reqID }, true)
+      req.log.info({ req })
+      res.on("finish", () => req.log.info({ res }))
+      next()
+    })
+  }
 
   app.get("/hc", (req, res) => {
     // let log = GetRequestLogger(req)
@@ -53,7 +57,7 @@ async function main() {
     res.sendStatus(200)
   })
 
-  const inngestMiddleware = serve("PostVoice", [])
+  const inngestMiddleware = serve("PostVoice", [HandleWebflowItemCreation, RegisterWebflowWebhooks])
   app.use("/inngest", inngestMiddleware)
 
   // Webflow endpoints
@@ -73,11 +77,48 @@ async function main() {
       redirect_uri: process.env.API_URL + "/webflow/token"
     })
 
-    const app = new Webflow({ token: access_token });
-    const { user } = await app.authenticatedUser()
+    console.log('token', access_token)
+    const wf = new Webflow({ token: access_token });
+    const { user } = await wf.authenticatedUser()
     console.log(user)
-    const sites = await app.sites()
+    const sites = await wf.sites()
     console.log(sites)
+    // TODO: Make webhook registration an inngest job
+    await inngest.send("api/webflow.register_webhooks", {
+      data: {
+        whPayload: req.body,
+        siteID: sites[0]._id,
+        accessToken: access_token
+      }
+    })
+    logger.info("created webhook")
+    res.sendStatus(200)
+  })
+  webflowRouter.post("/wh/:siteID/:event", async (req: Request<{siteID: string, event: string}, {}, {}>, res) => {
+    console.log('got webhook event', req.params.event, req.body)
+    switch (req.params.event) {
+      case "collection_item_created":
+        await inngest.send("api/webflow.collection_item_created", {
+          data: {
+            whPayload: req.body,
+            siteID: req.params.siteID
+          }
+        })
+        logger.debug('sent inngest event')
+        break;
+      case "collection_item_changed":
+        await inngest.send("api/webflow.collection_item_changed", {
+          data: {
+            whPayload: req.body,
+            siteID: req.params.siteID
+          }
+        })
+        break;
+    
+      default:
+        break;
+    }
+
     res.sendStatus(200)
   })
   app.use("/webflow", webflowRouter)

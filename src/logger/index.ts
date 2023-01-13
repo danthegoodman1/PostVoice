@@ -1,5 +1,7 @@
 import winston from 'winston'
 
+export const logMsgKey = "msg"
+
 export const logger = winston.createLogger({
   level: process.env.DEBUG === '1' ? 'debug' : 'info',
   format: winston.format.json(),
