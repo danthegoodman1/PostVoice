@@ -3,7 +3,7 @@ import Webflow from "webflow-api"
 import { logger, logMsgKey } from "../logger"
 import md5 from "md5"
 import { randomID } from "../utils/id"
-import { InsertWebflowSite } from "../db/queries/webflow"
+import { InsertWebflowCMSItem, InsertWebflowSite } from "../db/queries/webflow"
 import * as cheerio from "cheerio"
 import { CMSItemChangedDuringProcessing, CMSPartTooLong } from "./errors"
 
@@ -17,8 +17,8 @@ export const CreateWebflowSite = inngest.createStepFunction("Create Webflow Site
 
   // Store the site
   tools.run("store new site info", async () => {
-    const userID = randomID("user_")
-    await InsertWebflowSite(userID, event.data.siteID)
+    // const userID = randomID("user_")
+    await InsertWebflowSite("testuser", event.data.siteID)
   })
 
   // Create webhooks
@@ -84,8 +84,6 @@ export const HandleWebflowCollectionItemCreation = inngest.createStepFunction("W
 
   logger.debug(`got original hash: ${originalHash}`)
 
-  // TODO: Record cms item into DB
-
   const postParts = tools.run("Split post into parts", async () => {
     const wf = new Webflow({ token: event.data.encWfToken }) // TODO: decrypt
     const cmsItem = await wf.item({
@@ -138,13 +136,13 @@ export const HandleWebflowCollectionItemCreation = inngest.createStepFunction("W
   // TODO: delete audio parts from s3
 
   // get the cms item again, verify we have same hash
-  const [currentHash, postBody] = tools.run("Get original content hash", async () => {
+  const currentHash = tools.run("Get original content hash", async () => {
     const wf = new Webflow({ token: event.data.encWfToken }) // TODO: decrypt
     const cmsItem = await wf.item({
       collectionId: event.data.whPayload._cid,
       itemId: event.data.whPayload._id
     })
-    return [md5((cmsItem as any)["post-body"]), (cmsItem as any)["post-body"]]
+    return md5((cmsItem as any)["post-body"])
   })
 
   logger.debug(`got original hash: ${currentHash}`)
@@ -152,6 +150,19 @@ export const HandleWebflowCollectionItemCreation = inngest.createStepFunction("W
   if (currentHash !== originalHash) {
     throw new CMSItemChangedDuringProcessing()
   }
+
+  // Record cms item into DB
+  tools.run("Record new Webflow CMS item", async () => {
+    const partID = randomID("synth_")
+    await InsertWebflowCMSItem({
+      audio_path: process.env.S3_BUCKET + "/synth/" + partID,
+      id: event.data.whPayload.cid,
+      md5: currentHash,
+      site_id: event.data.whPayload._cid,
+      title: event.data.whPayload.name,
+      user_id: "testuser"
+    })
+  })
 
   // TODO: inject embed into CMS item and put
 })

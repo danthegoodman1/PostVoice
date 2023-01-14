@@ -8,4 +8,5 @@ export interface WebflowCMSItem extends basicInfoWithUserID {
   title: string
   md5: string
   audio_path: string
+  site_id: string
 }
