@@ -7,6 +7,6 @@ export async function InsertWebflowSite(userID: string, siteID: string) {
 }
 
 export async function InsertWebflowCMSItem(item: WebflowCMSItem) {
-  await pool.query(`INSERT INTO webflow_cms_item (user_id, site_id, id, title, audio_path, md5) VALUES ($1, $2, $3, $4, $5)`, [item.user_id, item.site_id, item.id, item.title, item.audio_path, item.md5])
+  await pool.query(`INSERT INTO webflow_cms_items (user_id, site_id, id, title, audio_path, md5) VALUES ($1, $2, $3, $4, $5, $6)`, [item.user_id, item.site_id, item.id, item.title, item.audio_path, item.md5])
   return
 }

@@ -7,14 +7,30 @@ import stream from 'stream'
 const pipeline = util.promisify(stream.pipeline)
 
 const s3 = new S3({
-  endpoint: process.env.S3_ENDPOINT ? process.env.S3_ENDPOINT : undefined
+  endpoint: process.env.S3_ENDPOINT ? process.env.S3_ENDPOINT : undefined,
+  credentials: {
+    accessKeyId: process.env.S3_KEY_ID!,
+    secretAccessKey: process.env.S3_KEY_SECRET!
+  }
 })
 
-export async function UploadS3File(fileName: string, readStream: fs.ReadStream) {
+export async function UploadS3FileStream(fileName: string, readStream: fs.ReadStream) {
   await s3.upload({
     Bucket: process.env.S3_BUCKET!,
     Key: fileName,
     Body: readStream
+  }).promise()
+  logger.debug({
+    [logMsgKey]: "uploaded s3 file",
+    fileName
+  })
+}
+
+export async function UploadS3FileBuffer(fileName: string, buffer: Buffer) {
+  await s3.upload({
+    Bucket: process.env.S3_BUCKET!,
+    Key: fileName,
+    Body: buffer
   }).promise()
   logger.debug({
     [logMsgKey]: "uploaded s3 file",

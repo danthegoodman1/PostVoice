@@ -88,10 +88,9 @@ async function main() {
       data: {
         whPayload: req.body,
         siteID: sites[0]._id,
-        accessToken: access_token
+        encWfToken: access_token
       }
     })
-    logger.info("created webhook")
     res.sendStatus(200)
   })
   webflowRouter.post("/wh/:siteID/:event", async (req: Request<{siteID: string, event: string}, {}, {}>, res) => {

@@ -21,6 +21,7 @@
     "typescript": "^4.9.4"
   },
   "dependencies": {
+    "@google-cloud/text-to-speech": "^4.1.0",
     "aws-sdk": "^2.1294.0",
     "bunyan": "^1.8.15",
     "cheerio": "^1.0.0-rc.12",
@@ -30,6 +31,8 @@
     "md5": "^2.3.0",
     "nanoid": "^3.3.4",
     "pg": "^8.8.0",
+    "pino": "^8.8.0",
+    "pino-pretty": "^9.1.1",
     "uuid": "^9.0.0",
     "webflow-api": "^1.2.2",
     "winston": "^3.8.2"
