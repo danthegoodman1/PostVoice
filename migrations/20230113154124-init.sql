@@ -31,7 +31,7 @@ CREATE TABLE webflow_cms_items (
   title TEXT NOT NULL,
   slug TEXT NOT NULL,
   md5 TEXT NOT NULL,
-  audio_path TEXT, -- null means it doesn't exist (yet)
+  audio_path TEXT NOT NULL,
 
   PRIMARY KEY(site_id, id)
 )
