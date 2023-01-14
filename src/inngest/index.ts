@@ -287,7 +287,8 @@ export const HandleWebflowCollectionItemCreation = inngest.createStepFunction("W
         md5: currentHash,
         site_id: event.data.siteID,
         title: event.data.whPayload.name,
-        user_id: "testuser"
+        user_id: "testuser",
+        slug: event.data.whPayload.slug
       })
     } catch (error) {
       logger.error(error)

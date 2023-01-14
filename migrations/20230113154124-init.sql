@@ -28,7 +28,8 @@ CREATE TABLE webflow_cms_items (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
-  title TEXT NOT NULL, -- a recognizable title or slug of the CMS item
+  title TEXT NOT NULL,
+  slug TEXT NOT NULL,
   md5 TEXT NOT NULL,
   audio_path TEXT, -- null means it doesn't exist (yet)
 
@@ -37,6 +38,7 @@ CREATE TABLE webflow_cms_items (
 ;
 
 CREATE INDEX webflow_cms_items_by_user ON webflow_cms_items(user_id);
+CREATE INDEX webflow_cms_items_by_site_slug ON webflow_cms_items(site_id, slug);
 
 
 -- +migrate Down
