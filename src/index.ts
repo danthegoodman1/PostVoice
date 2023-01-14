@@ -10,7 +10,7 @@ import { serve } from "inngest/express"
 import { logger } from "./logger"
 import { ConnectDB } from "./db"
 import Webflow from "webflow-api"
-import { HandleWebflowCollectionItemCreation, inngest, RegisterWebflowWebhooks } from "./inngest"
+import { HandleWebflowCollectionItemCreation, inngest, CreateWebflowSite } from "./inngest"
 
 const listenPort = process.env.PORT || "8080"
 
@@ -57,7 +57,7 @@ async function main() {
     res.sendStatus(200)
   })
 
-  const inngestMiddleware = serve("PostVoice", [HandleWebflowCollectionItemCreation, RegisterWebflowWebhooks])
+  const inngestMiddleware = serve("PostVoice", [HandleWebflowCollectionItemCreation, CreateWebflowSite])
   app.use("/inngest", inngestMiddleware)
 
   // Webflow endpoints
@@ -84,7 +84,7 @@ async function main() {
     const sites = await wf.sites()
     console.log(sites)
     // TODO: Make webhook registration an inngest job
-    await inngest.send("api/webflow.register_webhooks", {
+    await inngest.send("api/webflow.create_site", {
       data: {
         whPayload: req.body,
         siteID: sites[0]._id,

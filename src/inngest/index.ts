@@ -5,15 +5,20 @@ import md5 from 'md5'
 
 export const inngest = new Inngest({ name: "PostVoice" })
 
-export const RegisterWebflowWebhooks = inngest.createStepFunction("Webflow Register Webhooks", "api/webflow.register_webhooks", async ({ event, tools }) => {
+export const CreateWebflowSite = inngest.createStepFunction("Create Webflow Site", "api/webflow.create_site", async ({ event, tools }) => {
   logger.debug({
-    [logMsgKey]: "running RegisterWebflowWebhooks",
+    [logMsgKey]: "running CreateWebflowSite",
     data: event.data
   })
 
-  const wf = new Webflow({ token: process.env.TEMP_TOKEN })
+  // Store the site
+  tools.run("store new site info", async () => {
+    
+  })
 
+  // Create webhooks
   tools.run("register collection_item_created", async () => {
+    const wf = new Webflow({ token: event.data.encWfToken }) // TODO: decrypt
     await wf.createWebhook({
       siteId: event.data.siteID,
       triggerType: "collection_item_created",
@@ -22,6 +27,7 @@ export const RegisterWebflowWebhooks = inngest.createStepFunction("Webflow Regis
     logger.debug("registered collection_item_created")
   })
   tools.run("register collection_item_changed", async () => {
+    const wf = new Webflow({ token: event.data.encWfToken }) // TODO: decrypt
     await wf.createWebhook({
       siteId: event.data.siteID,
       triggerType: "collection_item_changed",
@@ -29,6 +35,8 @@ export const RegisterWebflowWebhooks = inngest.createStepFunction("Webflow Regis
     })
     logger.debug("registered collection_item_changed")
   })
+
+
   logger.debug("done RegisterWebflowWebhooks")
 })
 

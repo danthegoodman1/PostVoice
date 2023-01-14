@@ -15,28 +15,27 @@ CREATE TABLE webflow_sites (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
-  PRIMARY KEY(user_id, id)
+  PRIMARY KEY(id)
 )
 ;
 
-CREATE TABLE cms_items (
+CREATE INDEX webflow_sites_by_user ON webflow_sites(user_id);
+
+CREATE TABLE webflow_cms_items (
   user_id TEXT NOT NULL REFERENCES users(id)  ON DELETE CASCADE,
   id TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
-  platform_id TEXT NOT NULL, -- the id within the platform
-  platform_title TEXT NOT NULL, -- a recognizable title or slug of the CMS item
-  hash_sum TEXT NOT NULL, -- b64 encoded content hash excluding our iframe
+  title TEXT NOT NULL, -- a recognizable title or slug of the CMS item
+  b64_hash TEXT NOT NULL, -- b64 encoded content hash excluding our iframe
   audio_path TEXT, -- null means it doesn't exist (yet)
-
-  platform TEXT NOT NULL, -- webflow, ghost
 
   PRIMARY KEY(id)
 )
 ;
 
-CREATE INDEX cms_items_by_user ON cms_items(user_id, platform);
+CREATE INDEX webflow_cms_items_by_user ON webflow_cms_items(user_id, platform);
 
 CREATE TABLE cms_item_audio_part (
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -45,9 +44,11 @@ CREATE TABLE cms_item_audio_part (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
   item_id TEXT NOT NULL REFERENCES cms_items(id) ON DELETE CASCADE,
+  seq INT8 NOT NULL, -- [0,n) in order
   content TEXT NOT NULL,
+  audio_path TEXT NOT NULL,
 
-  PRIMARY KEY(user_id, item_id, id)
+  PRIMARY KEY(item_id, seq)
 )
 ;
 
