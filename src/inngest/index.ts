@@ -110,12 +110,6 @@ export const CreateWebflowSite = inngest.createStepFunction("Create Webflow Site
 
 export const HandleWebflowCollectionItemCreation = inngest.createStepFunction("Webflow Collection Item Creation", "api/webflow.collection_item_created", async ({ event, tools }) => {
   logger.debug("running HandleWebflowItemCreation step function")
-  // TESTING STUFF
-  const wf = new Webflow({ token: event.data.encWfToken }) // TODO: decrypt
-  const cmsItem = await wf.item({
-    collectionId: event.data.whPayload._cid,
-    itemId: event.data.whPayload._id
-  })
 
   const originalHash = tools.run("Get original content hash", async () => {
     try {
