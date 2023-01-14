@@ -9,7 +9,7 @@ import { logger, logMsgKey } from "../logger"
 import { randomID } from "../utils/id"
 import { InsertWebflowCMSItem, InsertWebflowSite } from "../db/queries/webflow"
 import { CMSItemChangedDuringProcessing, CMSPartTooLong } from "./errors"
-import { DownloadS3File, UploadS3FileBuffer, UploadS3FileStream } from "../storage"
+import { DeleteS3File, DownloadS3File, UploadS3FileBuffer, UploadS3FileStream } from "../storage"
 import { createReadStream, createWriteStream } from "fs"
 import { execShellCommand } from "../utils/exec"
 import { copyFile, unlink } from "fs/promises"
@@ -247,10 +247,11 @@ export const HandleWebflowCollectionItemCreation = inngest.createStepFunction("W
 
       for (let i = 0; i < itemParts.length; i++) {
         await unlink(`/tmp/${tempID}_${i}_pad.mp3`)
+        await DeleteS3File(itemParts[i].audioPath)
       }
       logger.debug("deleted local padded parts")
 
-      // await unlink(finalFileName)
+      await unlink(finalFileName)
 
       return finalFileName
     } catch (error) {

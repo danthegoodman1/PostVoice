@@ -49,3 +49,10 @@ export async function DownloadS3File(fileName: string, writeStream: fs.WriteStre
     fileName
   })
 }
+
+export async function DeleteS3File(fileName: string) {
+  return s3.deleteObject({
+    Bucket: process.env.S3_BUCKET!,
+    Key: fileName
+  }).promise()
+}
