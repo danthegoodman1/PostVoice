@@ -84,7 +84,7 @@ export const HandleWebflowCollectionItemCreation = inngest.createStepFunction("W
 
   logger.debug(`got original hash: ${originalHash}`)
 
-  // TODO: Record item into DB
+  // TODO: Record cms item into DB
 
   const postParts = tools.run("Split post into parts", async () => {
     const wf = new Webflow({ token: event.data.encWfToken }) // TODO: decrypt
