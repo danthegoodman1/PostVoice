@@ -121,8 +121,8 @@ export const HandleWebflowCollectionItemCreation = inngest.createStepFunction("W
       const partID = randomID("audpart_")
 
       // TODO: Synthesize speech
-      // TODO: Upload audio file
-      // TODO: Record in DB with seq number
+      // TODO: Upload audio file to s3
+      // TODO: Record in DB with seq number?
 
       return partID
     })
