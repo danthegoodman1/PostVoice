@@ -181,11 +181,11 @@ export const HandleWebflowCollectionItemCreation = inngest.createStepFunction("W
         const [response] = await ttsClient.synthesizeSpeech({
           input: {text: postParts[i]},
           voice: {
-            name: 'en-US-Wavenet-G',
-            languageCode: 'en-US'
+            name: "en-US-Neural2-G",
+            languageCode: "en-US"
           },
           audioConfig: {
-            audioEncoding: 'LINEAR16',
+            audioEncoding: "LINEAR16",
             sampleRateHertz: 44100
           }
         })
