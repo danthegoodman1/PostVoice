@@ -9,7 +9,7 @@ import { serve } from "inngest/express"
 import { logger } from "./logger"
 import { ConnectDB } from "./db"
 import Webflow from "webflow-api"
-import { HandleWebflowCollectionItemCreation, inngest, CreateWebflowSite } from "./inngest"
+import { HandleWebflowCollectionItemCreation, inngest, CreateWebflowSite, HandleWebflowDeleteItem, HandleWebflowItemChanged } from "./inngest"
 import { encrypt } from "./utils/crypto"
 import { GetWebflowSiteBySiteID } from "./db/queries/webflow"
 
@@ -58,7 +58,7 @@ async function main() {
     res.sendStatus(200)
   })
 
-  const inngestMiddleware = serve("PostVoice", [HandleWebflowCollectionItemCreation, CreateWebflowSite])
+  const inngestMiddleware = serve("PostVoice", [HandleWebflowCollectionItemCreation, CreateWebflowSite, HandleWebflowDeleteItem, HandleWebflowItemChanged])
   app.use("/inngest", inngestMiddleware)
 
   // Webflow endpoints
