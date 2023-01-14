@@ -134,9 +134,9 @@ export const HandleWebflowCollectionItemCreation = inngest.createStepFunction("W
   }
 
   // TODO: combine all parts to single file, write new single file to s3, record in db
-  
+
   // TODO: delete audio parts from s3
-  
+
   // get the cms item again, verify we have same hash
   const [currentHash, postBody] = tools.run("Get original content hash", async () => {
     const wf = new Webflow({ token: event.data.encWfToken }) // TODO: decrypt
