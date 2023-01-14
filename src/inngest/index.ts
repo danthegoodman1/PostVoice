@@ -295,6 +295,5 @@ export const HandleWebflowCollectionItemCreation = inngest.createStepFunction("W
     }
   })
 
-  // TODO: inject embed into CMS item and put
   logger.debug("done webflow collection item creation")
 })
