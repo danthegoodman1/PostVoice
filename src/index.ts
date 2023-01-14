@@ -4,7 +4,6 @@ dotenv.config()
 import express, { Request, Response } from "express"
 import bunyan from "bunyan"
 import { v4 as uuidv4 } from "uuid"
-import { createFunction } from "inngest"
 import { serve } from "inngest/express"
 
 import { logger } from "./logger"
@@ -12,6 +11,7 @@ import { ConnectDB } from "./db"
 import Webflow from "webflow-api"
 import { HandleWebflowCollectionItemCreation, inngest, CreateWebflowSite } from "./inngest"
 import { encrypt } from "./utils/crypto"
+import { GetWebflowSiteBySiteID } from "./db/queries/webflow"
 
 const listenPort = process.env.PORT || "8080"
 
@@ -89,20 +89,21 @@ async function main() {
       data: {
         whPayload: req.body,
         siteID: sites[0]._id,
-        encWfToken: access_token
+        encWfToken: encrypt(access_token, process.env.CRYPTO_KEY!)
       }
     })
     res.sendStatus(200)
   })
   webflowRouter.post("/wh/:siteID/:event", async (req: Request<{siteID: string, event: string}, {}, {}>, res) => {
     console.log('got webhook event', req.params.event, req.body)
+    const site = await GetWebflowSiteBySiteID(req.params.siteID)
     switch (req.params.event) {
       case "collection_item_created":
         await inngest.send("api/webflow.collection_item_created", {
           data: {
             whPayload: req.body,
             siteID: req.params.siteID,
-            encWfToken: encrypt(process.env.TEMP_TOKEN!, process.env.CRYPTO_KEY!) // will be provided by DB lookup
+            encWfToken: site.access_token
           }
         })
         logger.debug('sent inngest event')
@@ -112,7 +113,7 @@ async function main() {
           data: {
             whPayload: req.body,
             siteID: req.params.siteID,
-            encWfToken: encrypt(process.env.TEMP_TOKEN!, process.env.CRYPTO_KEY!) // will be provided by DB lookup
+            encWfToken: site.access_token
           }
         })
         break;

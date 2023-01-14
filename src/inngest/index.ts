@@ -12,7 +12,7 @@ import { CMSItemChangedDuringProcessing, CMSPartTooLong } from "./errors"
 import { DeleteS3File, DownloadS3File, UploadS3FileBuffer, UploadS3FileStream } from "../storage"
 import { createReadStream, createWriteStream } from "fs"
 import { execShellCommand } from "../utils/exec"
-import { copyFile, unlink } from "fs/promises"
+import { unlink } from "fs/promises"
 import { InsertUser } from "../db/queries/user"
 import { decrypt } from "../utils/crypto"
 
@@ -40,7 +40,8 @@ export const CreateWebflowSite = inngest.createStepFunction("Create Webflow Site
   tools.run("store new site info", async () => {
     // const userID = randomID("user_")
     try {
-      await InsertWebflowSite("testuser", event.data.siteID)
+      console.log('tokne', decrypt(event.data.encWfToken, process.env.CRYPTO_KEY!))
+      await InsertWebflowSite("testuser", event.data.siteID, event.data.encWfToken)
     } catch (error) {
       logger.error(error)
       throw error
@@ -203,52 +204,55 @@ export const HandleWebflowCollectionItemCreation = inngest.createStepFunction("W
     })
   }
 
+  const finalFileID = tools.run("Generate final file id", () => {
+    return randomID("")
+  })
+
   // combine all parts to single file, write new single file to s3, record in db
-  const finalFileName = tools.run("Combine audio parts to single file", async () => {
+  const finalFilePath = tools.run("Combine audio parts to single file", async () => {
 
     try {
       logger.debug("combining audio parts")
-      const tempID = randomID("")
-      const finalFileName = `synth/${tempID}.mp3`
-      const paddedFiles = []
+      const finalFilePath = `synth/${finalFileID}.mp3`
+      const partFileNames = []
       for (let i = 0; i < itemParts.length; i++) {
-        const fileName = `/tmp/${tempID}_${i}.mp3`
-        const paddedFile = `/tmp/${tempID}_${i}_pad.mp3`
-        paddedFiles.push(paddedFile)
+        const fileName = `/tmp/${finalFileID}_${i}.mp3`
+        const paddedFile = `/tmp/${finalFileID}_${i}_pad.mp3`
+        partFileNames.push(fileName)
 
         // Download the file
         const ws = createWriteStream(fileName)
         await DownloadS3File(itemParts[i].audioPath, ws)
         logger.debug("downloaded part from s3")
 
-        // Add one second of silence to end of file
-        await execShellCommand(`ffmpeg -i ${fileName} -af "apad=pad_dur=0.1" ${paddedFile}`)
-        logger.debug("appended silence")
+        // // Add one second of silence to end of file
+        // await execShellCommand(`ffmpeg -i ${fileName} -af "apad=pad_dur=0.1" ${paddedFile}`)
+        // logger.debug("appended silence")
 
-        // Remove the old file
-        await unlink(fileName)
+        // // Remove the old file
+        // await unlink(fileName)
 
         logger.debug("deleting local parts")
       }
 
       // Concat the parts
-      const finalFile = `/tmp/${tempID}.mp3`
-      await execShellCommand(`ffmpeg ${paddedFiles.map(f => `-i ${f}`).join(" ")} -filter_complex "${paddedFiles.map((f, i) => `[${i}:a]`).join("")}concat=n=${paddedFiles.length}:v=0:a=1" ${finalFile}`)
+      const finalFile = `/tmp/${finalFileID}.mp3`
+      await execShellCommand(`ffmpeg ${partFileNames.map(f => `-i ${f}`).join(" ")} -filter_complex "${partFileNames.map((f, i) => `[${i}:a]`).join("")}concat=n=${partFileNames.length}:v=0:a=1" ${finalFile}`)
       logger.debug("merged parts")
 
       const rs = createReadStream(finalFile)
-      await UploadS3FileStream(finalFileName, rs)
+      await UploadS3FileStream(finalFilePath, rs)
       logger.debug("uploaded final audio file to s3")
 
-      for (let i = 0; i < itemParts.length; i++) {
-        await unlink(`/tmp/${tempID}_${i}_pad.mp3`)
+      for (let i = 0; i < partFileNames.length; i++) {
+        await unlink(partFileNames[i])
         await DeleteS3File(itemParts[i].audioPath)
       }
       logger.debug("deleted local padded parts")
 
-      await unlink(finalFileName)
+      await unlink(finalFile)
 
-      return finalFileName
+      return finalFilePath
     } catch (error) {
       logger.error(error)
       throw error
@@ -283,7 +287,7 @@ export const HandleWebflowCollectionItemCreation = inngest.createStepFunction("W
     try {
       logger.debug("inserting new webflow cms item to DB")
       await InsertWebflowCMSItem({
-        audio_path: finalFileName,
+        audio_path: finalFilePath,
         id: event.data.whPayload._id,
         md5: currentHash,
         site_id: event.data.siteID,

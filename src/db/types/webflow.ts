@@ -1,7 +1,7 @@
 import { basicInfoWithUserID } from "./base"
 
 export interface WebflowSite extends basicInfoWithUserID {
-
+  access_token: string
 }
 
 export interface WebflowCMSItem extends basicInfoWithUserID {

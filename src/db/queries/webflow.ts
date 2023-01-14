@@ -1,12 +1,21 @@
 import { pool } from "..";
-import { WebflowCMSItem } from "../types/webflow";
+import { RowsNotFound } from "../errors";
+import { WebflowCMSItem, WebflowSite } from "../types/webflow";
 
-export async function InsertWebflowSite(userID: string, siteID: string) {
-  await pool.query(`INSERT INTO webflow_sites (user_id, id) VALUES ($1, $2)`, [userID, siteID])
+export async function InsertWebflowSite(userID: string, siteID: string, encAccessToken: string) {
+  await pool.query(`INSERT INTO webflow_sites (user_id, id, access_token) VALUES ($1, $2, $3)`, [userID, siteID, encAccessToken])
   return
 }
 
 export async function InsertWebflowCMSItem(item: WebflowCMSItem) {
-  await pool.query(`INSERT INTO webflow_cms_items (user_id, site_id, id, title, audio_path, md5) VALUES ($1, $2, $3, $4, $5, $6)`, [item.user_id, item.site_id, item.id, item.title, item.audio_path, item.md5])
+  await pool.query(`INSERT INTO webflow_cms_items (user_id, site_id, id, title, audio_path, md5, slug) VALUES ($1, $2, $3, $4, $5, $6, $7)`, [item.user_id, item.site_id, item.id, item.title, item.audio_path, item.md5, item.slug])
   return
+}
+
+export async function GetWebflowSiteBySiteID(siteID: string): Promise<WebflowSite> {
+  const query = await pool.query(`SELECT * FROM webflow_sites WHERE id = $1`, [siteID])
+  if (query.rowCount === 0) {
+    throw new RowsNotFound()
+  }
+  return query.rows[0] as WebflowSite
 }

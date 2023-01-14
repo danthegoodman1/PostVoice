@@ -14,6 +14,7 @@ CREATE TABLE webflow_sites (
   id TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  access_token TEXT NOT NULL,
 
   PRIMARY KEY(id)
 )
