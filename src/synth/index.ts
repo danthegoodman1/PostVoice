@@ -1,5 +1,5 @@
 export const voices = {
-  neural: [
+  Neural: [
     "en-US-Wavenet-A",
     "en-US-Neural2-B",
     "en-US-Neural2-C",
@@ -11,7 +11,7 @@ export const voices = {
     "en-US-Neural2-I",
     "en-US-Neural2-J",
   ],
-  wavenet: [
+  Wavenet: [
     "en-US-Wavenet-A",
     "en-US-Wavenet-B",
     "en-US-Wavenet-C",
