@@ -11,6 +11,7 @@ import { logger } from "./logger"
 import { ConnectDB } from "./db"
 import Webflow from "webflow-api"
 import { HandleWebflowCollectionItemCreation, inngest, CreateWebflowSite } from "./inngest"
+import { encrypt } from "./utils/crypto"
 
 const listenPort = process.env.PORT || "8080"
 
@@ -101,7 +102,7 @@ async function main() {
           data: {
             whPayload: req.body,
             siteID: req.params.siteID,
-            encWfToken: process.env.TEMP_TOKEN // will be provided by DB lookup
+            encWfToken: encrypt(process.env.TEMP_TOKEN!, process.env.CRYPTO_KEY!) // will be provided by DB lookup
           }
         })
         logger.debug('sent inngest event')
@@ -111,11 +112,11 @@ async function main() {
           data: {
             whPayload: req.body,
             siteID: req.params.siteID,
-            encWfToken: process.env.TEMP_TOKEN // will be provided by DB lookup
+            encWfToken: encrypt(process.env.TEMP_TOKEN!, process.env.CRYPTO_KEY!) // will be provided by DB lookup
           }
         })
         break;
-    
+
       default:
         break;
     }

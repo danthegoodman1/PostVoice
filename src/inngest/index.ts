@@ -14,6 +14,7 @@ import { createReadStream, createWriteStream } from "fs"
 import { execShellCommand } from "../utils/exec"
 import { copyFile, unlink } from "fs/promises"
 import { InsertUser } from "../db/queries/user"
+import { decrypt } from "../utils/crypto"
 
 export const inngest = new Inngest({ name: "PostVoice" })
 
@@ -49,7 +50,7 @@ export const CreateWebflowSite = inngest.createStepFunction("Create Webflow Site
   // Create webhooks
   tools.run("register collection_item_created", async () => {
     try {
-      const wf = new Webflow({ token: event.data.encWfToken }) // TODO: decrypt
+      const wf = new Webflow({ token: decrypt(event.data.encWfToken, process.env.CRYPTO_KEY!) })
       await wf.createWebhook({
         siteId: event.data.siteID,
         triggerType: "collection_item_created",
@@ -63,7 +64,7 @@ export const CreateWebflowSite = inngest.createStepFunction("Create Webflow Site
   })
   tools.run("register collection_item_changed", async () => {
     try {
-      const wf = new Webflow({ token: event.data.encWfToken }) // TODO: decrypt
+      const wf = new Webflow({ token: decrypt(event.data.encWfToken, process.env.CRYPTO_KEY!) })
       await wf.createWebhook({
         siteId: event.data.siteID,
         triggerType: "collection_item_changed",
@@ -77,7 +78,7 @@ export const CreateWebflowSite = inngest.createStepFunction("Create Webflow Site
   })
   tools.run("register collection_item_deleted", async () => {
     try {
-      const wf = new Webflow({ token: event.data.encWfToken }) // TODO: decrypt
+      const wf = new Webflow({ token: decrypt(event.data.encWfToken, process.env.CRYPTO_KEY!) })
       await wf.createWebhook({
         siteId: event.data.siteID,
         triggerType: "collection_item_deleted",
@@ -91,7 +92,7 @@ export const CreateWebflowSite = inngest.createStepFunction("Create Webflow Site
   })
   tools.run("register collection_item_unpublished", async () => {
     try {
-      const wf = new Webflow({ token: event.data.encWfToken }) // TODO: decrypt
+      const wf = new Webflow({ token: decrypt(event.data.encWfToken, process.env.CRYPTO_KEY!) })
       await wf.createWebhook({
         siteId: event.data.siteID,
         triggerType: "collection_item_unpublished",
@@ -114,7 +115,7 @@ export const HandleWebflowCollectionItemCreation = inngest.createStepFunction("W
   const originalHash = tools.run("Get original content hash", async () => {
     try {
       logger.debug("getting original content hash")
-      const wf = new Webflow({ token: event.data.encWfToken }) // TODO: decrypt
+      const wf = new Webflow({ token: decrypt(event.data.encWfToken, process.env.CRYPTO_KEY!) })
       const cmsItem = await wf.item({
         collectionId: event.data.whPayload._cid,
         itemId: event.data.whPayload._id
@@ -132,7 +133,7 @@ export const HandleWebflowCollectionItemCreation = inngest.createStepFunction("W
   const postParts = tools.run("Split post into parts", async () => {
     try {
       logger.debug("splitting post into parts")
-      const wf = new Webflow({ token: event.data.encWfToken }) // TODO: decrypt
+      const wf = new Webflow({ token: decrypt(event.data.encWfToken, process.env.CRYPTO_KEY!) })
       const cmsItem = await wf.item({
         collectionId: event.data.whPayload._cid,
         itemId: event.data.whPayload._id
@@ -258,7 +259,7 @@ export const HandleWebflowCollectionItemCreation = inngest.createStepFunction("W
   const currentHash = tools.run("Get original content hash", async () => {
     try {
       logger.debug("getting current content hash")
-      const wf = new Webflow({ token: event.data.encWfToken }) // TODO: decrypt
+      const wf = new Webflow({ token: decrypt(event.data.encWfToken, process.env.CRYPTO_KEY!) })
       const cmsItem = await wf.item({
         collectionId: event.data.whPayload._cid,
         itemId: event.data.whPayload._id
