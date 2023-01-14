@@ -28,7 +28,7 @@ CREATE TABLE webflow_cms_items (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
   title TEXT NOT NULL, -- a recognizable title or slug of the CMS item
-  b64_hash TEXT NOT NULL, -- b64 encoded content hash excluding our iframe
+  md5 TEXT NOT NULL,
   audio_path TEXT, -- null means it doesn't exist (yet)
 
   PRIMARY KEY(id)

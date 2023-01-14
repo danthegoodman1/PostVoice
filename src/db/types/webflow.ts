@@ -6,6 +6,6 @@ export interface WebflowSite extends basicInfoWithUserID {
 
 export interface WebflowCMSItem extends basicInfoWithUserID {
   title: string
-  b64_hash: string
+  md5: string
   audio_path: string
 }
