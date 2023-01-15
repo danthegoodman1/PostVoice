@@ -41,6 +41,19 @@ CREATE TABLE webflow_cms_items (
 CREATE INDEX webflow_cms_items_by_user ON webflow_cms_items(user_id);
 CREATE INDEX webflow_cms_items_by_site_slug ON webflow_cms_items(site_id, slug);
 
+CREATE TABLE synthesis_jobs (
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  id TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  words INT8 NOT NULL,
+  seconds INT8 NOT NULL,
+
+  PRIMARY KEY(user_id, id)
+)
+;
+
 
 -- +migrate Down
 DROP TABLE users;
