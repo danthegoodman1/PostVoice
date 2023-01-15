@@ -328,7 +328,9 @@ export const HandleWebflowDeleteItem = inngest.createStepFunction("Webflow Colle
 export const HandleWebflowItemChanged = inngest.createStepFunction("Webflow Collection Item Changed", "api/webflow.collection_item_changed", async ({ event, tools }) => {
   // TODO: Get the content
   // TODO: Check if the hash of the content is different
+  // TODO: Check if the slug is different
+    // TODO: If only slug is different then update DB
   // TODO: if content different, make new file...
-  // TODO: Update DB with new audio path
+  // TODO: Update DB with new audio path (and slug?)
   // TODO: Delete old audio path
 })
