@@ -7,7 +7,7 @@ import { Readable } from 'stream'
 
 import { logger, logMsgKey } from "../logger"
 import { randomID } from "../utils/id"
-import { InsertWebflowCMSItem, InsertWebflowSite } from "../db/queries/webflow"
+import { GetWebflowCMSItemByID, InsertWebflowCMSItem, InsertWebflowSite } from "../db/queries/webflow"
 import { CMSItemChangedDuringProcessing, CMSPartTooLong } from "./errors"
 import { DeleteS3File, DownloadS3File, UploadS3FileBuffer, UploadS3FileStream } from "../storage"
 import { createReadStream, createWriteStream } from "fs"
@@ -16,6 +16,7 @@ import { unlink } from "fs/promises"
 import { InsertUser } from "../db/queries/user"
 import { decrypt } from "../utils/crypto"
 import { InsertSynthesisJob } from "../db/queries/synthesis_jobs"
+import { RowsNotFound } from "../db/errors"
 
 export const inngest = new Inngest({ name: "PostVoice" })
 
@@ -112,6 +113,28 @@ export const CreateWebflowSite = inngest.createStepFunction("Create Webflow Site
 
 export const HandleWebflowCollectionItemCreation = inngest.createStepFunction("Webflow Collection Item Creation", "api/webflow.collection_item_created", async ({ event, tools }) => {
   logger.debug("running HandleWebflowItemCreation step function")
+
+  // Verify item does not exist
+  const exists = tools.run("Check if CMS item exists in DB", async () => {
+    try {
+      await GetWebflowCMSItemByID(event.data.siteID, event.data.whPayload._cid, event.data.whPayload._id)
+      return true
+    } catch (error) {
+      if (error instanceof RowsNotFound) {
+        return false
+      }
+      logger.error(error)
+      throw error
+    }
+  })
+
+  if (exists) {
+    logger.warn({
+      [logMsgKey]: "CMS item already exists, aborting",
+      eventData: event.data
+    })
+    return
+  }
 
   const originalHash = tools.run("Get original content hash", async () => {
     try {

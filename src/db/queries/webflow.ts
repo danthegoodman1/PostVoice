@@ -19,3 +19,11 @@ export async function GetWebflowSiteBySiteID(siteID: string): Promise<WebflowSit
   }
   return query.rows[0] as WebflowSite
 }
+
+export async function GetWebflowCMSItemByID(siteID: string, collectionID: string, id: string): Promise<WebflowCMSItem> {
+  const query = await pool.query(`SELECT * FROM webflow_cms_items WHERE collection_id = $1 AND site_id = $2 AND id = $3`, [collectionID, siteID, id])
+  if (query.rowCount === 0) {
+    throw new RowsNotFound()
+  }
+  return query.rows[0] as WebflowCMSItem
+}
