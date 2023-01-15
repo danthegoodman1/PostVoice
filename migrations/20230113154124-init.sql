@@ -40,6 +40,7 @@ CREATE TABLE webflow_cms_items (
 ;
 
 CREATE INDEX webflow_cms_items_by_user ON webflow_cms_items(user_id);
+CREATE INDEX webflow_cms_items_by_id ON webflow_cms_items(user_id, collection_id, id);
 
 CREATE TABLE synthesis_jobs (
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
