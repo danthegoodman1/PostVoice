@@ -6,5 +6,15 @@ export const logger = pino(process.env.DEBUG === "1" ? {
   transport: {
     target: 'pino-pretty',
   },
-  level: 'debug'
-} : undefined)
+  level: process.env.LOG_LEVEL || 'debug',
+
+} : {
+  level: process.env.LOG_LEVEL || 'info',
+  formatters: {
+    level: (label) => {
+      return {
+        [process.env.LEVEL_KEY || 'level']: label
+      }
+    }
+  }
+})
