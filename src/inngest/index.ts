@@ -330,8 +330,14 @@ export const HandleWebflowCollectionItemCreation = inngest.createStepFunction("W
   // Record synth run
   tools.run("Record new Synthesis Job", async () => {
     try {
-      logger.debug("inserting synthesis job to DB")
-      await InsertSynthesisJob("testuser", randomID("job_"), itemParts.reduce((accumulator, item) => accumulator + item.synthTimeMS, 0), itemParts.reduce((accumulator, item) => accumulator + item.chars, 0), `webflow/${event.data.siteID}/${event.data.whPayload._id}`)
+      await InsertSynthesisJob({
+        audio_path: finalFilePath,
+        chars: itemParts.reduce((accumulator, item) => accumulator + item.chars, 0),
+        ms: itemParts.reduce((accumulator, item) => accumulator + item.synthTimeMS, 0),
+        id: randomID("job_"),
+        job: `webflow/${event.data.siteID}/${event.data.whPayload.slug}`,
+        user_id: "testuser"
+      })
     } catch (error) {
       logger.error(error)
       throw error
