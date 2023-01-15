@@ -47,8 +47,9 @@ CREATE TABLE synthesis_jobs (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
-  words INT8 NOT NULL,
-  seconds INT8 NOT NULL,
+  chars INT8 NOT NULL,
+  ms INT8 NOT NULL,
+  job TEXT NOT NULL,
 
   PRIMARY KEY(user_id, id)
 )

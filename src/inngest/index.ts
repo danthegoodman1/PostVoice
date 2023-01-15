@@ -15,6 +15,7 @@ import { execShellCommand } from "../utils/exec"
 import { unlink } from "fs/promises"
 import { InsertUser } from "../db/queries/user"
 import { decrypt } from "../utils/crypto"
+import { InsertSynthesisJob } from "../db/queries/synthesis_jobs"
 
 export const inngest = new Inngest({ name: "PostVoice" })
 
@@ -106,7 +107,6 @@ export const CreateWebflowSite = inngest.createStepFunction("Create Webflow Site
     }
   })
 
-
   logger.debug("done CreateWebflowSite workflow")
 })
 
@@ -166,14 +166,15 @@ export const HandleWebflowCollectionItemCreation = inngest.createStepFunction("W
     return
   }
 
-  const itemParts: {partID: string, audioPath: string}[] = []
+  const itemParts: {partID: string, audioPath: string, synthTimeMS: number, chars: number}[] = []
   for (let i = 0; i < postParts.length; i++) {
-    const partID = tools.run("Synthesize audio part", async () => {
+    const [partID, durationMS, chars] = tools.run("Synthesize audio part", async () => {
       try {
         logger.debug(`splitting part ${i}`)
         const partID = randomID("audpart_")
 
         // Synthesize speech
+        const start = new Date().getTime()
         const [response] = await ttsClient.synthesizeSpeech({
           input: {text: postParts[i]},
           voice: {
@@ -185,13 +186,14 @@ export const HandleWebflowCollectionItemCreation = inngest.createStepFunction("W
             sampleRateHertz: 44100
           }
         })
+        const duration = new Date().getTime() - start
         logger.debug("synthesized speech for part")
 
         // Upload audio file to s3
         await UploadS3FileBuffer("parts/" + partID + ".mp3", Buffer.from(response.audioContent as Uint8Array))
         logger.debug("uploaded part to s3")
 
-        return partID
+        return [partID, duration, postParts[i].length]
       } catch (error) {
         logger.error(error)
         throw error
@@ -199,8 +201,10 @@ export const HandleWebflowCollectionItemCreation = inngest.createStepFunction("W
     })
 
     itemParts.push({
-      partID,
-      audioPath: "parts/" + partID + ".mp3"
+      partID: partID as string,
+      audioPath: "parts/" + partID + ".mp3",
+      synthTimeMS: durationMS as number,
+      chars: chars as number
     })
   }
 
@@ -295,6 +299,17 @@ export const HandleWebflowCollectionItemCreation = inngest.createStepFunction("W
         user_id: "testuser",
         slug: event.data.whPayload.slug
       })
+    } catch (error) {
+      logger.error(error)
+      throw error
+    }
+  })
+
+  // Record synth run
+  tools.run("Record new Synthesis Job", async () => {
+    try {
+      logger.debug("inserting synthesis job to DB")
+      await InsertSynthesisJob("testuser", randomID("job_"), itemParts.reduce((accumulator, item) => accumulator + item.synthTimeMS, 0), itemParts.reduce((accumulator, item) => accumulator + item.chars, 0), `webflow/${event.data.siteID}/${event.data.whPayload._id}`)
     } catch (error) {
       logger.error(error)
       throw error
