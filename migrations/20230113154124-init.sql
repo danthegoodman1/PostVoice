@@ -28,18 +28,18 @@ CREATE TABLE webflow_cms_items (
   id TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  collection_id TEXT NOT NULL,
 
   title TEXT NOT NULL,
   slug TEXT NOT NULL,
   md5 TEXT NOT NULL,
   audio_path TEXT NOT NULL,
 
-  PRIMARY KEY(site_id, id)
+  PRIMARY KEY(site_id, collection_id, slug)
 )
 ;
 
 CREATE INDEX webflow_cms_items_by_user ON webflow_cms_items(user_id);
-CREATE INDEX webflow_cms_items_by_site_slug ON webflow_cms_items(site_id, slug);
 
 CREATE TABLE synthesis_jobs (
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
