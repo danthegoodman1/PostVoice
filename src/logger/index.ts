@@ -13,7 +13,7 @@ export const logger = pino(process.env.DEBUG === "1" ? {
   formatters: {
     level: (label) => {
       return {
-        [process.env.LEVEL_KEY || 'level']: label
+        [process.env.LOG_LEVEL_KEY || 'level']: label
       }
     }
   }
