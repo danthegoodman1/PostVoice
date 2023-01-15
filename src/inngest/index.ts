@@ -164,7 +164,6 @@ export const HandleWebflowCollectionItemCreation = inngest.createStepFunction("W
       })
       const postBody = (cmsItem as any)["post-body"]
 
-      // TODO: Check if there is an embed already?
       const $ = cheerio.load(postBody)
 
       const parts = $("html *").contents().map(function() {
