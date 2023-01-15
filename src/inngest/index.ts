@@ -130,7 +130,7 @@ export const HandleWebflowCollectionItemCreation = inngest.createStepFunction("W
 
   if (exists) {
     logger.warn({
-      [logMsgKey]: "CMS item already exists, aborting",
+      [logMsgKey]: "CMS item already exists in DB, aborting",
       eventData: event.data
     })
     return
