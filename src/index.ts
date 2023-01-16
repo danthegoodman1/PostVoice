@@ -12,6 +12,7 @@ import Webflow from "webflow-api"
 import { HandleWebflowCollectionItemCreation, inngest, CreateWebflowSite, HandleWebflowDeleteItem, HandleWebflowItemChanged } from "./inngest"
 import { encrypt } from "./utils/crypto"
 import { GetWebflowSiteBySiteID } from "./db/queries/webflow"
+import WHHandler from "./clerk/wh_handlers"
 
 const listenPort = process.env.PORT || "8080"
 
@@ -125,6 +126,19 @@ async function main() {
     res.sendStatus(200)
   })
   app.use("/webflow", webflowRouter)
+
+  const clerkRouter = express.Router()
+  clerkRouter.post("/wh", (req, res) => {
+    try {
+      return WHHandler(req, res)
+    } catch (error) {
+      logger.error({
+        error
+      }, "error handling clerk webhook")
+      return res.sendStatus(500)
+    }
+  })
+  app.use("/clerk", clerkRouter)
 
   const server = app.listen(listenPort, () => {
     logger.info(`API listening on port ${listenPort}`)
