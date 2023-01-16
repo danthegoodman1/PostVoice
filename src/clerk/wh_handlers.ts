@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { InsertUser } from "../db/queries/user";
 import { logger } from "../logger";
 import {Webhook} from 'svix'
+import { InvalidWebhookAuth } from "./errors";
 
 interface ClerkWHEvent {
   object: string
@@ -13,7 +14,12 @@ export default async function WHHandler(req: Request, res: Response) {
   // Verify the webhook
 
   const wh = new Webhook(process.env.CLERK_WH_SECRET!)
-  const payload = wh.verify(req.body, req.headers as any) as ClerkWHEvent
+  let payload: ClerkWHEvent
+  try {
+    payload = wh.verify(req.body, req.headers as any) as ClerkWHEvent
+  } catch (error) {
+    throw new InvalidWebhookAuth()
+  }
 
   logger.debug({
     body: payload

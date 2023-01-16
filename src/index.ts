@@ -13,6 +13,7 @@ import { HandleWebflowCollectionItemCreation, inngest, CreateWebflowSite, Handle
 import { encrypt } from "./utils/crypto"
 import { GetWebflowSiteBySiteID } from "./db/queries/webflow"
 import WHHandler from "./clerk/wh_handlers"
+import { InvalidWebhookAuth } from "./clerk/errors"
 
 const listenPort = process.env.PORT || "8080"
 
@@ -132,6 +133,9 @@ async function main() {
     try {
       return WHHandler(req, res)
     } catch (error) {
+      if (error instanceof InvalidWebhookAuth) {
+        return res.sendStatus(401)
+      }
       logger.error({
         error
       }, "error handling clerk webhook")
