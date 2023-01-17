@@ -203,8 +203,7 @@ export const HandleWebflowCollectionItemCreation = inngest.createStepFunction("W
             languageCode: "en-US"
           },
           audioConfig: {
-            audioEncoding: "LINEAR16",
-            sampleRateHertz: 44100
+            audioEncoding: "LINEAR16"
           }
         })
         const duration = new Date().getTime() - start
