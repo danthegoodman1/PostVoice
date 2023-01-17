@@ -1,19 +1,30 @@
 import * as dotenv from "dotenv"
 dotenv.config()
 
-import express, { Request, Response } from "express"
+import express, { NextFunction, Request, Response } from "express"
 import bunyan from "bunyan"
 import { v4 as uuidv4 } from "uuid"
 import { serve } from "inngest/express"
+import Webflow from "webflow-api"
+import {
+  ClerkExpressRequireAuth,
+  StrictAuthProp,
+} from '@clerk/clerk-sdk-node'
 
 import { logger } from "./logger"
 import { ConnectDB } from "./db"
-import Webflow from "webflow-api"
 import { HandleWebflowCollectionItemCreation, inngest, CreateWebflowSite, HandleWebflowDeleteItem, HandleWebflowItemChanged } from "./inngest"
 import { encrypt } from "./utils/crypto"
 import { GetWebflowSiteBySiteID } from "./db/queries/webflow"
 import WHHandler from "./clerk/wh_handlers"
 import { InvalidWebhookAuth } from "./clerk/errors"
+import { HandleListSites } from "./sites"
+
+declare global {
+  namespace Express {
+    interface Request extends StrictAuthProp {}
+  }
+}
 
 const listenPort = process.env.PORT || "8080"
 
@@ -144,6 +155,11 @@ async function main() {
   })
   app.use("/clerk", clerkRouter)
 
+  const siteRouter = express.Router()
+  siteRouter.use(ClerkExpressRequireAuth())
+  siteRouter.get("/", HandleListSites)
+  app.use("/sites", siteRouter)
+
   const server = app.listen(listenPort, () => {
     logger.info(`API listening on port ${listenPort}`)
   })
@@ -172,3 +188,7 @@ async function main() {
 }
 
 main()
+
+async function ClerkMW(req: Request, res: Response, next: NextFunction) {
+
+}
