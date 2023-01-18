@@ -10,6 +10,8 @@ import {
   ClerkExpressRequireAuth,
   StrictAuthProp,
 } from '@clerk/clerk-sdk-node'
+import cors from 'cors'
+
 
 import { logger } from "./logger"
 import { ConnectDB } from "./db"
@@ -34,6 +36,7 @@ async function main() {
   const app = express()
   app.use(express.json())
   app.disable("x-powered-by")
+  app.use(cors())
 
   const log = bunyan.createLogger({
     name: "PostVoice",
@@ -81,7 +84,7 @@ async function main() {
       client_id: process.env.WEBFLOW_CLIENT_ID!,
       redirect_uri: process.env.API_URL + "/webflow/token"
     })
-    res.redirect(url)
+    res.json({url})
   })
   webflowRouter.get("/token", async (req: Request<{}, {}, {}, {code: string}>, res: Response) => {
     const { access_token } = await webflow.accessToken({
