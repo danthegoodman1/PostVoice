@@ -108,7 +108,7 @@ async function main() {
         encWfToken: encrypt(access_token, process.env.CRYPTO_KEY!)
       }
     })
-    res.sendStatus(200)
+    res.redirect(`${process.env.FE_URL}/sites?action=add_webflow`)
   })
   webflowRouter.post("/wh/:siteID/:event", async (req: Request<{siteID: string, event: string}, {}, {}>, res) => {
     console.log('got webhook event', req.params.event, req.body)
