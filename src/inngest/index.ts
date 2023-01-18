@@ -21,7 +21,10 @@ export const inngest = new Inngest({ name: "PostVoice" })
 
 export const ttsClient = new TextToSpeech.TextToSpeechClient()
 
-export const CreateWebflowSite = inngest.createStepFunction("Create Webflow Site", "api/webflow.create_site", async ({ event, tools }) => {
+export const CreateWebflowSite = inngest.createStepFunction({
+  name: "Create Webflow Site",
+  retries: 20
+}, "api/webflow.create_site", async ({ event, tools }) => {
   logger.debug({
     [logMsgKey]: "running CreateWebflowSite workflow",
     data: event.data
@@ -108,9 +111,12 @@ export const CreateWebflowSite = inngest.createStepFunction("Create Webflow Site
   })
 
   logger.debug("done CreateWebflowSite workflow")
-})
+}, )
 
-export const HandleWebflowCollectionItemCreation = inngest.createStepFunction("Webflow Collection Item Creation", "api/webflow.collection_item_created", async ({ event, tools }) => {
+export const HandleWebflowCollectionItemCreation = inngest.createStepFunction({
+  name: "Webflow Collection Item Creation",
+  retries: 20
+}, "api/webflow.collection_item_created", async ({ event, tools }) => {
   logger.debug("running HandleWebflowItemCreation step function")
 
   // Verify item does not exist
