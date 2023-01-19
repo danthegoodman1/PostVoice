@@ -47,3 +47,38 @@ export async function GetSites(userID: string): Promise<GenericSite[]> {
   }
   return sites
 }
+
+import { RowsNotFound } from "../errors";
+import { Site } from "../types/sites"
+import { SitePost } from "../types/site_posts";
+
+export interface InsertSiteParams {
+  EncryptedAccessToken: string
+
+}
+
+export async function InsertSite(params: Site) {
+  await pool.query(`INSERT INTO sites (user_id, id, access_token, platform_id, img_url, name, kind) VALUES ($1, $2, $3, $4, $5, $6, $7)`, [params.user_id, params.id, params.access_token, params.platform_id, params.img_url, params.name, params.kind])
+  return
+}
+
+export async function InsertPost(params: SitePost) {
+  await pool.query(`INSERT INTO site_posts (user_id, site_id, id, site_platform_id, title, audio_path, md5, slug) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`, [params.user_id, params.site_id, params.id, params.site_platform_id, params.title, params.audio_path, params.md5, params.slug])
+  return
+}
+
+export async function GetSiteByID(siteID: string): Promise<Site> {
+  const query = await pool.query(`SELECT * FROM sites WHERE id = $1`, [siteID])
+  if (query.rowCount === 0) {
+    throw new RowsNotFound()
+  }
+  return query.rows[0] as Site
+}
+
+export async function GetSitePostByID(siteID: string, id: string): Promise<SitePost> {
+  const query = await pool.query(`SELECT * FROM site_posts WHERE id = $1 AND site_id = $2`, [siteID, id])
+  if (query.rowCount === 0) {
+    throw new RowsNotFound()
+  }
+  return query.rows[0] as SitePost
+}

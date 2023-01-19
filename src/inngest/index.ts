@@ -6,7 +6,7 @@ import TextToSpeech from '@google-cloud/text-to-speech'
 
 import { logger, logMsgKey } from "../logger"
 import { randomID } from "../utils/id"
-import { GetWebflowCMSItemByID, InsertWebflowCMSItem, InsertWebflowSite } from "../db/queries/webflow"
+import { GetSitePostByID, InsertPost, InsertSite } from "../db/queries/sites"
 import { CMSItemChangedDuringProcessing, CMSPartTooLong } from "./errors"
 import { DeleteS3File, DownloadS3File, UploadS3FileBuffer, UploadS3FileStream } from "../storage"
 import { createReadStream, createWriteStream } from "fs"
@@ -16,6 +16,7 @@ import { InsertUser } from "../db/queries/user"
 import { decrypt } from "../utils/crypto"
 import { InsertSynthesisJob } from "../db/queries/synthesis_jobs"
 import { RowsNotFound } from "../db/errors"
+import { BuildWebflowPostID } from "../utils/webflow"
 
 export const inngest = new Inngest({ name: "PostVoice" })
 
@@ -42,10 +43,16 @@ export const CreateWebflowSite = inngest.createStepFunction({
 
   // Store the site
   tools.run("store new site info", async () => {
-    // const userID = randomID("user_")
     try {
-      console.log('tokne', decrypt(event.data.encWfToken, process.env.CRYPTO_KEY!))
-      await InsertWebflowSite("testuser", event.data.siteID, event.data.encWfToken)
+      await InsertSite({
+        access_token: event.data.encWfToken,
+        platform_id: event.data.site._id,
+        id: event.data.siteID,
+        img_url: event.data.site.previewUrl || null,
+        kind: "webflow",
+        name: event.data.site.name,
+        user_id: "testuser"
+      })
     } catch (error) {
       logger.error(error)
       throw error
@@ -122,7 +129,7 @@ export const HandleWebflowCollectionItemCreation = inngest.createStepFunction({
   // Verify item does not exist
   const exists = tools.run("Check if CMS item exists in DB", async () => {
     try {
-      await GetWebflowCMSItemByID(event.data.siteID, event.data.whPayload._cid, event.data.whPayload._id)
+      await GetSitePostByID(event.data.siteID, BuildWebflowPostID(event.data.whPayload._cid, event.data.whPayload._id))
       return true
     } catch (error) {
       if (error instanceof RowsNotFound) {
@@ -316,15 +323,15 @@ export const HandleWebflowCollectionItemCreation = inngest.createStepFunction({
   tools.run("Record new Webflow CMS item", async () => {
     try {
       logger.debug("inserting new webflow cms item to DB")
-      await InsertWebflowCMSItem({
+      await InsertPost({
         audio_path: finalFilePath,
-        id: event.data.whPayload._id,
+        id: BuildWebflowPostID(event.data.whPayload._cid, event.data.whPayload._id),
         md5: currentHash,
         site_id: event.data.siteID,
         title: event.data.whPayload.name,
         user_id: "testuser",
         slug: event.data.whPayload.slug,
-        collection_id: event.data.whPayload._cid
+        site_platform_id: BuildWebflowPostID(event.data.whPayload._cid, event.data.whPayload._id)
       })
     } catch (error) {
       logger.error(error)

@@ -17,10 +17,11 @@ import { logger } from "./logger"
 import { ConnectDB } from "./db"
 import { HandleWebflowCollectionItemCreation, inngest, CreateWebflowSite, HandleWebflowDeleteItem, HandleWebflowItemChanged } from "./inngest"
 import { encrypt } from "./utils/crypto"
-import { GetWebflowSiteBySiteID } from "./db/queries/webflow"
+import { GetSiteByID } from "./db/queries/sites"
 import WHHandler from "./clerk/wh_handlers"
 import { InvalidWebhookAuth } from "./clerk/errors"
 import { HandleListSites } from "./sites"
+import { randomID } from "./utils/id"
 
 declare global {
   namespace Express {
@@ -101,10 +102,12 @@ async function main() {
     const sites = await wf.sites()
     console.log(sites)
     // TODO: Make webhook registration an inngest job
+    const siteID = randomID("site_")
     await inngest.send("api/webflow.create_site", {
       data: {
         whPayload: req.body,
-        siteID: sites[0]._id,
+        site: sites[0],
+        siteID,
         encWfToken: encrypt(access_token, process.env.CRYPTO_KEY!)
       }
     })
@@ -112,7 +115,7 @@ async function main() {
   })
   webflowRouter.post("/wh/:siteID/:event", async (req: Request<{siteID: string, event: string}, {}, {}>, res) => {
     console.log('got webhook event', req.params.event, req.body)
-    const site = await GetWebflowSiteBySiteID(req.params.siteID)
+    const site = await GetSiteByID(req.params.siteID)
     switch (req.params.event) {
       case "collection_item_created":
         await inngest.send("api/webflow.collection_item_created", {
