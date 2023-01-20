@@ -22,6 +22,7 @@ import WHHandler from "./clerk/wh_handlers"
 import { InvalidWebhookAuth } from "./clerk/errors"
 import { HandleListSites } from "./sites"
 import { randomID } from "./utils/id"
+import { ListAvailableWebflowSitesForTokens } from "./webflow/sites"
 
 declare global {
   namespace Express {
@@ -142,6 +143,17 @@ async function main() {
     }
 
     res.sendStatus(200)
+  })
+  webflowRouter.get("/sites", ClerkExpressRequireAuth(), async (req, res) => {
+    try {
+      const sites = await ListAvailableWebflowSitesForTokens(req.auth.userId)
+      return res.json({
+        sites
+      })
+    } catch (error) {
+      logger.error(error, "error getting sites")
+      return res.sendStatus(500)
+    }
   })
   app.use("/webflow", webflowRouter)
 
