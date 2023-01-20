@@ -62,6 +62,17 @@ CREATE TABLE synthesis_jobs (
 ;
 
 
+CREATE TABLE webflow_access_tokens (
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE DO NOTHING,
+  id TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  access_token TEXT NOT NULL,
+
+  PRIMARY KEY(user_id, id)
+)
+
 -- +migrate Down
 DROP TABLE users;
 DROP TABLE webflow_sites;
