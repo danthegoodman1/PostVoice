@@ -3,7 +3,7 @@ import crypto from 'crypto'
 /**
  * @returns hex encoded string
  */
-export function encrypt(text: string, key: string): string {
+export function encrypt(text: string, key = process.env.CRYPTO_TOKEN!): string {
   const iv = crypto.randomBytes(16)
   let cipher = crypto.createCipheriv('aes-256-cbc', Buffer.from(key), iv)
   let encrypted = cipher.update(text)
@@ -12,7 +12,7 @@ export function encrypt(text: string, key: string): string {
   return Buffer.concat([iv, encrypted]).toString('hex')
 }
 
-export function decrypt(hex: string, key: string) {
+export function decrypt(hex: string, key = process.env.CRYPTO_TOKEN!) {
   const iv = Buffer.from(hex.substring(0, 32), 'hex')
   const encData = Buffer.from(hex.substring(32), 'hex')
 

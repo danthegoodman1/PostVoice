@@ -16,13 +16,14 @@ import cors from 'cors'
 import { logger } from "./logger"
 import { ConnectDB } from "./db"
 import { HandleWebflowCollectionItemCreation, inngest, CreateWebflowSite, HandleWebflowDeleteItem } from "./inngest"
-import { encrypt } from "./utils/crypto"
+import { decrypt, encrypt } from "./utils/crypto"
 import { GetSiteByID } from "./db/queries/sites"
 import WHHandler from "./clerk/wh_handlers"
 import { InvalidWebhookAuth } from "./clerk/errors"
 import { HandleListSites } from "./sites"
 import { randomID } from "./utils/id"
 import { ListAvailableWebflowSitesForTokens } from "./webflow/sites"
+import { GetWebflowToken, InsertWebflowAccessToken } from "./db/queries/webflow"
 
 declare global {
   namespace Express {
@@ -88,12 +89,18 @@ async function main() {
     })
     res.json({url})
   })
-  webflowRouter.get("/token", async (req: Request<{}, {}, {}, {code: string}>, res: Response) => {
+  webflowRouter.get("/token", ClerkExpressRequireAuth(), async (req: Request<{}, {}, {}, {code: string}>, res: Response) => {
     const { access_token } = await webflow.accessToken({
       client_id: process.env.WEBFLOW_CLIENT_ID!,
       client_secret: process.env.WEBFLOW_CLIENT_SECRET!,
       code: req.query.code,
       redirect_uri: process.env.API_URL + "/webflow/token"
+    })
+
+    await InsertWebflowAccessToken({
+      id: randomID("wftok_"),
+      access_token: encrypt(access_token),
+      user_id: req.auth.userId
     })
 
     console.log('token', access_token)
@@ -102,16 +109,6 @@ async function main() {
     console.log(user)
     const sites = await wf.sites()
     console.log(sites)
-    // TODO: Make webhook registration an inngest job
-    const siteID = randomID("site_")
-    await inngest.send("api/webflow.create_site", {
-      data: {
-        whPayload: req.body,
-        site: sites[0],
-        siteID,
-        encWfToken: encrypt(access_token, process.env.CRYPTO_KEY!)
-      }
-    })
     res.redirect(`${process.env.FE_URL}/sites?action=add_webflow`)
   })
   webflowRouter.post("/wh/:siteID/:event", async (req: Request<{siteID: string, event: string}, {}, {}>, res) => {
@@ -150,6 +147,33 @@ async function main() {
       return res.json({
         sites
       })
+    } catch (error) {
+      logger.error(error, "error getting sites")
+      return res.sendStatus(500)
+    }
+  })
+  webflowRouter.post("/sites/add", ClerkExpressRequireAuth(), async (req: Request<{}, {}, {tokenID: string, siteID: string}>, res: Response) => {
+    try {
+      const token = await GetWebflowToken(req.auth.userId, req.body.tokenID)
+      const wf = new Webflow({
+        token: decrypt(token.access_token)
+      })
+
+      const site = await wf.site({
+        siteId: req.body.siteID
+      })
+
+      const siteID = randomID("site_")
+
+      await inngest.send("api/webflow.create_site", {
+        data: {
+          whPayload: req.body,
+          site: site,
+          siteID,
+          encWfToken: token.access_token
+        }
+      })
+      return res.send("added")
     } catch (error) {
       logger.error(error, "error getting sites")
       return res.sendStatus(500)
