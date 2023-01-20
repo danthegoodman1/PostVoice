@@ -31,15 +31,6 @@ export const CreateWebflowSite = inngest.createStepFunction({
     data: event.data
   })
 
-  tools.run("store new user", async () => {
-    try {
-      await InsertUser("testuser")
-    } catch (error) {
-      logger.error(error)
-      throw error
-    }
-  })
-
   // Store the site
   tools.run("store new site info", async () => {
     try {

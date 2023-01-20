@@ -171,9 +171,14 @@ async function main() {
           site: site,
           siteID,
           encWfToken: token.access_token
+        },
+        user: {
+          id: req.auth.userId
         }
       })
-      return res.send("added")
+      return res.json({
+        siteID
+      })
     } catch (error) {
       logger.error(error, "error getting sites")
       return res.sendStatus(500)
