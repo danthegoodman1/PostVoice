@@ -7,7 +7,7 @@ import TextToSpeech from '@google-cloud/text-to-speech'
 import { logger, logMsgKey } from "../logger"
 import { randomID } from "../utils/id"
 import { GetSitePostByID, InsertPost, InsertSite } from "../db/queries/sites"
-import { CMSItemChangedDuringProcessing, CMSPartTooLong } from "./errors"
+import { CMSPartTooLong } from "./errors"
 import { DeleteS3File, DownloadS3File, UploadS3FileBuffer, UploadS3FileStream } from "../storage"
 import { createReadStream, createWriteStream } from "fs"
 import { execShellCommand } from "../utils/exec"
@@ -166,7 +166,6 @@ export const HandleWebflowCollectionItemCreation = inngest.createStepFunction({
       throw error
     }
   })
-
 
   const postParts = tools.run("Split post into parts", async () => {
     try {
