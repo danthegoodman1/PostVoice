@@ -54,7 +54,7 @@ CREATE TABLE synthesis_jobs (
 
   chars INT8 NOT NULL,
   ms INT8 NOT NULL,
-  job TEXT NOT NULL, -- The job that was done, such as webflow_{site_id}_{slug} or ghost_{site_id}_{post_id}
+  job TEXT NOT NULL, -- The job that was done, such as webflow_{our_site_id}_{our_slug}
   audio_path TEXT NOT NULL,
 
   PRIMARY KEY(user_id, id)
