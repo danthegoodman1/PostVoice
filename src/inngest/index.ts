@@ -12,11 +12,13 @@ import { DeleteS3File, DownloadS3File, UploadS3FileBuffer, UploadS3FileStream } 
 import { createReadStream, createWriteStream } from "fs"
 import { execShellCommand } from "../utils/exec"
 import { unlink } from "fs/promises"
-import { InsertUser } from "../db/queries/user"
+import { GetUser, InsertUser } from "../db/queries/user"
 import { decrypt } from "../utils/crypto"
 import { InsertSynthesisJob } from "../db/queries/synthesis_jobs"
 import { RowsNotFound } from "../db/errors"
 import { BuildWebflowPostID } from "../utils/webflow"
+import { User } from "../db/types/user"
+import { SitePost } from "../db/types/site_posts"
 
 export const inngest = new Inngest({ name: "PostVoice" })
 
@@ -41,7 +43,7 @@ export const CreateWebflowSite = inngest.createStepFunction({
         img_url: event.data.site.previewUrl || null,
         kind: "webflow",
         name: event.data.site.name,
-        user_id: "testuser",
+        user_id: event.user!.id,
       })
     } catch (error) {
       logger.error(error)
@@ -49,6 +51,7 @@ export const CreateWebflowSite = inngest.createStepFunction({
     }
   })
 
+  // TODO: Update the webhook url
   // Create webhooks
   tools.run("register collection_item_created", async () => {
     try {
@@ -117,20 +120,20 @@ export const HandleWebflowCollectionItemCreation = inngest.createStepFunction({
   logger.debug("running HandleWebflowItemCreation step function")
 
   // Check if item exists
-  const exists = tools.run("Check if CMS item exists in DB", async () => {
+  const post = tools.run("Check if CMS item exists in DB", async () => {
     try {
-      await GetSitePostByID(event.data.siteID, BuildWebflowPostID(event.data.whPayload._cid, event.data.whPayload._id))
-      return true
+      const post = await GetSitePostByID(event.data.siteID, BuildWebflowPostID(event.data.whPayload._cid, event.data.whPayload._id))
+      return post
     } catch (error) {
       if (error instanceof RowsNotFound) {
-        return false
+        return null
       }
       logger.error(error)
       throw error
     }
-  })
+  }) as SitePost | null
 
-  if (exists) {
+  if (post !== null) {
     // TODO: We need to see if the content changed
       // TODO: If changed, we regenerate
       // TODO: If not changed, abort
@@ -157,6 +160,10 @@ export const HandleWebflowCollectionItemCreation = inngest.createStepFunction({
       throw error
     }
   })
+
+  const user = tools.run("get user info", async () => {
+    return await GetUser(post!.user_id)
+  }) as User
 
   const postParts = tools.run("Split post into parts", async () => {
     try {
@@ -298,7 +305,7 @@ export const HandleWebflowCollectionItemCreation = inngest.createStepFunction({
         md5: originalHash,
         site_id: event.data.siteID,
         title: event.data.whPayload.name,
-        user_id: "testuser",
+        user_id: user.id,
         slug: event.data.whPayload.slug,
         site_platform_id: BuildWebflowPostID(event.data.whPayload._cid, event.data.whPayload._id)
       })
@@ -317,7 +324,7 @@ export const HandleWebflowCollectionItemCreation = inngest.createStepFunction({
         ms: itemParts.reduce((accumulator, item) => accumulator + item.synthTimeMS, 0),
         id: randomID("job_"),
         job: `webflow/${event.data.siteID}/${event.data.whPayload.slug}`,
-        user_id: "testuser"
+        user_id: user.id
       })
     } catch (error) {
       logger.error(error)
