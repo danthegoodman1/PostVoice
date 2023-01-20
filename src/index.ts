@@ -22,8 +22,9 @@ import WHHandler from "./clerk/wh_handlers"
 import { InvalidWebhookAuth } from "./clerk/errors"
 import { HandleListSites } from "./sites"
 import { randomID } from "./utils/id"
-import { ListAvailableWebflowSitesForTokens } from "./webflow/sites"
+import { ListAvailableWebflowSitesForTokens, ListCollectionsForSite } from "./webflow/sites"
 import { GetWebflowToken, InsertWebflowAccessToken } from "./db/queries/webflow"
+import { RowsNotFound } from "./db/errors"
 
 declare global {
   namespace Express {
@@ -152,7 +153,21 @@ async function main() {
       return res.sendStatus(500)
     }
   })
-  webflowRouter.post("/sites/add", ClerkExpressRequireAuth(), async (req: Request<{}, {}, {tokenID: string, siteID: string}>, res: Response) => {
+  webflowRouter.get("/sites/:siteID/collections", ClerkExpressRequireAuth(), async (req: Request<{siteID: string}, {}, {}, {tokenID: string}>, res: Response) => {
+    try {
+      const collections = await ListCollectionsForSite(req.auth.userId, req.params.siteID, req.query.tokenID)
+      return res.json({
+        collections
+      })
+    } catch (error) {
+      if (error instanceof RowsNotFound) {
+        return res.status(404).send("token not found")
+      }
+      logger.error(error, "error getting collections")
+      return res.sendStatus(500)
+    }
+  })
+  webflowRouter.post("/sites/add", ClerkExpressRequireAuth(), async (req: Request<{}, {}, { tokenID: string, siteID: string, collectionID: string }>, res: Response) => {
     try {
       const token = await GetWebflowToken(req.auth.userId, req.body.tokenID)
       const wf = new Webflow({
@@ -163,12 +178,17 @@ async function main() {
         siteId: req.body.siteID
       })
 
+      const collection = await wf.collection({
+        collectionId: req.body.collectionID
+      })
+
       const siteID = randomID("site_")
 
       await inngest.send("api/webflow.create_site", {
         data: {
           whPayload: req.body,
           site: site,
+          collection: collection,
           siteID,
           encWfToken: token.access_token
         },

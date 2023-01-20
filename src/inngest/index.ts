@@ -16,7 +16,7 @@ import { GetUser, InsertUser } from "../db/queries/user"
 import { decrypt } from "../utils/crypto"
 import { InsertSynthesisJob } from "../db/queries/synthesis_jobs"
 import { RowsNotFound } from "../db/errors"
-import { BuildWebflowPostID } from "../utils/webflow"
+import { BuildWebflowPostID, BuildWebflowSiteID } from "../utils/webflow"
 import { User } from "../db/types/user"
 import { SitePost } from "../db/types/site_posts"
 
@@ -38,7 +38,7 @@ export const CreateWebflowSite = inngest.createStepFunction({
     try {
       await InsertSite({
         access_token: event.data.encWfToken,
-        platform_id: event.data.site._id,
+        platform_id: BuildWebflowSiteID(event.data.site._id, event.data.collection._id),
         id: event.data.siteID,
         img_url: event.data.site.previewUrl || null,
         kind: "webflow",

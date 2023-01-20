@@ -1,6 +1,8 @@
 import Webflow from "webflow-api";
-import { Site } from 'webflow-api/dist/api'
+import { Site, Collection } from 'webflow-api/dist/api'
 import { pool } from "../db";
+import { RowsNotFound } from "../db/errors";
+import { GetWebflowToken } from "../db/queries/webflow";
 import { decrypt } from "../utils/crypto";
 
 export interface SiteWithToken extends Site {
@@ -32,4 +34,15 @@ export async function ListAvailableWebflowSitesForTokens(userID: string): Promis
   }
 
   return sites
+}
+
+export async function ListCollectionsForSite(userID: string, tokenID: string, siteID: string): Promise<Collection[]> {
+  const token = await GetWebflowToken(userID, tokenID)
+  const wf = new Webflow({
+    token: decrypt(token.access_token)
+  })
+
+  return wf.collections({
+    siteId: siteID
+  })
 }
