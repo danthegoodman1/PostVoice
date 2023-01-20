@@ -50,7 +50,7 @@ export const CreateWebflowSite = inngest.createStepFunction({
         img_url: event.data.site.previewUrl || null,
         kind: "webflow",
         name: event.data.site.name,
-        user_id: "testuser"
+        user_id: "testuser",
       })
     } catch (error) {
       logger.error(error)
