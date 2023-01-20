@@ -31,8 +31,7 @@ export const CreateWebflowSite = inngest.createStepFunction({
     data: event.data
   })
 
-  tools.run("store new site info", async () => {
-    // const userID = randomID("user_")
+  tools.run("store new user", async () => {
     try {
       await InsertUser("testuser")
     } catch (error) {
@@ -126,7 +125,7 @@ export const HandleWebflowCollectionItemCreation = inngest.createStepFunction({
 }, "api/webflow.collection_item_created", async ({ event, tools }) => {
   logger.debug("running HandleWebflowItemCreation step function")
 
-  // Verify item does not exist
+  // Check if item exists
   const exists = tools.run("Check if CMS item exists in DB", async () => {
     try {
       await GetSitePostByID(event.data.siteID, BuildWebflowPostID(event.data.whPayload._cid, event.data.whPayload._id))
@@ -141,6 +140,9 @@ export const HandleWebflowCollectionItemCreation = inngest.createStepFunction({
   })
 
   if (exists) {
+    // TODO: We need to see if the content changed
+      // TODO: If changed, we regenerate
+      // TODO: If not changed, abort
     logger.warn({
       [logMsgKey]: "CMS item already exists in DB, aborting",
       eventData: event.data
@@ -362,14 +364,4 @@ export const HandleWebflowCollectionItemCreation = inngest.createStepFunction({
 export const HandleWebflowDeleteItem = inngest.createStepFunction("Webflow Collection Item Delete", "api/webflow.collection_item_deleted", async ({ event, tools }) => {
   // TODO: Delete file from DB
   // TODO: Delete file from S3
-})
-
-export const HandleWebflowItemChanged = inngest.createStepFunction("Webflow Collection Item Changed", "api/webflow.collection_item_changed", async ({ event, tools }) => {
-  // TODO: Get the content
-  // TODO: Check if the hash of the content is different
-  // TODO: Check if the slug is different
-    // TODO: If only slug is different then update DB
-  // TODO: if content different, make new file...
-  // TODO: Update DB with new audio path (and slug?)
-  // TODO: Delete old audio path
 })
