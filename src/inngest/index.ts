@@ -298,29 +298,6 @@ export const HandleWebflowCollectionItemCreation = inngest.createStepFunction({
     }
   })
 
-  // get the cms item again, verify we have same hash
-  const currentHash = tools.run("Get original content hash", async () => {
-    try {
-      logger.debug("getting current content hash")
-      const wf = new Webflow({ token: decrypt(event.data.encWfToken, process.env.CRYPTO_KEY!) })
-      const cmsItem = await wf.item({
-        collectionId: event.data.whPayload._cid,
-        itemId: event.data.whPayload._id
-      })
-      const currentHash = md5((cmsItem as any)["post-body"])
-      logger.debug(`got current hash: ${currentHash}`)
-      return currentHash
-    } catch (error) {
-      logger.error(error)
-      throw error
-    }
-  })
-
-
-  if (currentHash !== originalHash) {
-    throw new CMSItemChangedDuringProcessing()
-  }
-
   // Record cms item into DB
   tools.run("Record new Webflow CMS item", async () => {
     try {
@@ -328,7 +305,7 @@ export const HandleWebflowCollectionItemCreation = inngest.createStepFunction({
       await InsertPost({
         audio_path: finalFilePath,
         id: BuildWebflowPostID(event.data.whPayload._cid, event.data.whPayload._id),
-        md5: currentHash,
+        md5: originalHash,
         site_id: event.data.siteID,
         title: event.data.whPayload.name,
         user_id: "testuser",
