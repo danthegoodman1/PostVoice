@@ -15,7 +15,7 @@ import cors from 'cors'
 
 import { logger } from "./logger"
 import { ConnectDB } from "./db"
-import { HandleWebflowCollectionItemCreation, inngest, CreateWebflowSite, HandleWebflowDeleteItem, HandleWebflowItemChanged } from "./inngest"
+import { HandleWebflowCollectionItemCreation, inngest, CreateWebflowSite, HandleWebflowDeleteItem } from "./inngest"
 import { encrypt } from "./utils/crypto"
 import { GetSiteByID } from "./db/queries/sites"
 import WHHandler from "./clerk/wh_handlers"
@@ -75,7 +75,7 @@ async function main() {
     res.sendStatus(200)
   })
 
-  const inngestMiddleware = serve("PostVoice", [HandleWebflowCollectionItemCreation, CreateWebflowSite, HandleWebflowDeleteItem, HandleWebflowItemChanged])
+  const inngestMiddleware = serve("PostVoice", [HandleWebflowCollectionItemCreation, CreateWebflowSite, HandleWebflowDeleteItem])
   app.use("/inngest", inngestMiddleware)
 
   // Webflow endpoints
@@ -194,7 +194,3 @@ async function main() {
 }
 
 main()
-
-async function ClerkMW(req: Request, res: Response, next: NextFunction) {
-
-}
