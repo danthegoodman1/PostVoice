@@ -238,7 +238,8 @@ export const HandlePostCreation = inngest.createStepFunction({
         chars: itemParts.reduce((accumulator, item) => accumulator + item.chars, 0),
         ms: itemParts.reduce((accumulator, item) => accumulator + item.synthTimeMS, 0),
         id: randomID("job_"),
-        job: `webflow/${event.data.siteID}/${event.data.whPayload.slug}`,
+        site_id: siteID,
+        post_slug: slug,
         user_id: user.id
       })
     } catch (error) {

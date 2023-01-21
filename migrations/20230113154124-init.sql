@@ -66,7 +66,7 @@ CREATE TABLE synthesis_jobs (
 
   chars INT8 NOT NULL,
   ms INT8 NOT NULL,
-  job TEXT NOT NULL, -- The job that was done, such as webflow_{our_site_id}_{our_slug}
+  FOREIGN KEY (site_id, post_slug) REFERENCES site_posts (site_id, slug) ON DELETE DO NOTHING
   audio_path TEXT NOT NULL,
 
   PRIMARY KEY(user_id, id)
