@@ -4,7 +4,7 @@ import { PostCreationEvent } from "."
 import { InsertSite } from "../db/queries/sites"
 import { Site } from "../db/types/sites"
 
-import { logger, logMsgKey } from "../logger"
+import { logger } from "../logger"
 import { decrypt } from "../utils/crypto"
 import { BreakdownWebflowSiteID, BuildWebflowPostID, BuildWebflowPostSlug, BuildWebflowSiteID } from "../utils/webflow"
 
@@ -38,7 +38,7 @@ export const CreateWebflowSite = inngest.createStepFunction({
         id: event.data.siteID,
         img_url: event.data.site.previewUrl || null,
         kind: "webflow",
-        name: event.data.site.name,
+        name: `${event.data.site.name} - ${event.data.collection.name}`,
         user_id: event.user!.id,
       })
     } catch (error) {
