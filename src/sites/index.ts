@@ -41,3 +41,17 @@ export async function PostCreateSite(req: Request<{}, {}, PostCreateSiteReqBody>
     return res.sendStatus(500)
   }
 }
+
+
+interface PostCreatePostReqBody {
+  contentType: 'plain' | 'html' | 'markdown',
+  content: string
+  slug: string
+  title: string
+}
+
+export async function PostCreatePost(req: Request<{siteID: string}, {}, PostCreatePostReqBody>, res: Response) {
+  const postID = randomID("post_")
+  // TODO: Verify site exists?
+  // TODO: launch create post event
+}

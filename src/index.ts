@@ -16,7 +16,7 @@ import cors from 'cors'
 import { logger } from "./logger"
 import { ConnectDB } from "./db"
 import { HandleWebflowCollectionItemCreation, CreateWebflowSite, HandleWebflowDeleteItem } from "./inngest"
-import { GetListSites, PostCreateSite } from "./sites"
+import { GetListSites, PostCreatePost, PostCreateSite } from "./sites"
 
 import * as WebflowHandlers from "./handlers/webflow"
 import * as WebhookHandlers from "./handlers/webhook"
@@ -88,6 +88,7 @@ async function main() {
   siteRouter.use(ClerkExpressRequireAuth())
   siteRouter.get("/", GetListSites)
   siteRouter.post("/", PostCreateSite)
+  siteRouter.post("/:siteID/post", PostCreatePost)
   app.use("/sites", siteRouter)
 
   // Webhook endpoints
