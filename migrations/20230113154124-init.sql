@@ -10,7 +10,7 @@ CREATE TABLE users (
 ;
 
 CREATE TABLE webflow_access_tokens (
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE DO NOTHING,
+  user_id TEXT NOT NULL REFERENCES users(id),
   id TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -59,14 +59,16 @@ CREATE INDEX site_posts_by_id ON site_posts(site_id, id);
 
 
 CREATE TABLE synthesis_jobs (
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE DO NOTHING,
+  user_id TEXT NOT NULL REFERENCES users(id),
   id TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
   chars INT8 NOT NULL,
   ms INT8 NOT NULL,
-  FOREIGN KEY (site_id, post_slug) REFERENCES site_posts (site_id, slug) ON DELETE DO NOTHING
+  site_id TEXT NOT NULL,
+  post_slug TEXT NOT NULL,
+  FOREIGN KEY (site_id, post_slug) REFERENCES site_posts(site_id, slug),
   audio_path TEXT NOT NULL,
 
   PRIMARY KEY(user_id, id)
