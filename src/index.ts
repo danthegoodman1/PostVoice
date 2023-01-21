@@ -83,11 +83,13 @@ async function main() {
   webflowRouter.post("/sites/add", ClerkExpressRequireAuth(), WebflowHandlers.PostAddSite)
   app.use("/webflow", webflowRouter)
 
+  // Site endpoints
   const siteRouter = express.Router()
   siteRouter.use(ClerkExpressRequireAuth())
   siteRouter.get("/", HandleListSites)
   app.use("/sites", siteRouter)
 
+  // Webhook endpoints
   const webhookHandler = express.Router()
   webhookHandler.post("/webflow/:siteID/:event", WebhookHandlers.HandleWebflowSiteEvent)
   webhookHandler.post("/clerk", WebhookHandlers.HandleClerkEvent)
