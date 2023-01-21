@@ -5,7 +5,7 @@ import TextToSpeech from '@google-cloud/text-to-speech'
 
 import { logger, logMsgKey } from "../logger"
 import { randomID } from "../utils/id"
-import { GetSitePostByID, InsertPost } from "../db/queries/sites"
+import { GetSitePostBySlug, InsertPost } from "../db/queries/sites"
 import { CMSPartTooLong } from "./errors"
 import { DeleteS3File, DownloadS3File, UploadS3FileBuffer, UploadS3FileStream } from "../storage"
 import { createReadStream, createWriteStream } from "fs"
@@ -37,14 +37,12 @@ export const HandlePostCreation = inngest.createStepFunction({
   name: "Post Creation",
   retries: 20
 }, "api/post.created", async ({ event, tools }) => {
-  logger.debug("running HandlePostCreation step function")
-
   const { siteID, kind, postID, whPayload, postContent, contentType, slug, postTitle } = event.data as PostCreationEvent
 
   // Check if item exists
-  const post = tools.run("Check if Post exists in DB", async () => {
+  const post = tools.run("Check if post exists in DB", async () => {
     try {
-      const post = await GetSitePostByID(siteID, postID)
+      const post = await GetSitePostBySlug(siteID, slug)
       return post
     } catch (error) {
       if (error instanceof RowsNotFound) {

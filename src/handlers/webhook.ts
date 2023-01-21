@@ -2,20 +2,27 @@ import { Request, Response } from "express";
 import { InvalidWebhookAuth } from "../clerk/errors";
 import WHHandler from "../clerk/wh_handlers";
 import { GetSiteByID } from "../db/queries/sites";
-import { inngest } from "../inngest";
+import { inngest, PostCreationEvent } from "../inngest";
 import { logger } from "../logger";
+import { BuildWebflowPostID, BuildWebflowPostSlug } from "../utils/webflow";
 
-export async function HandleWebflowSiteEvent(req: Request<{siteID: string, event: string}, {}, {}>, res: Response){
+export async function HandleWebflowSiteEvent(req: Request<{siteID: string, event: string}>, res: Response){
   console.log('got webhook event', req.params.event, req.body)
   const site = await GetSiteByID(req.params.siteID)
   switch (req.params.event) {
     case "collection_item_created":
       await inngest.send("api/webflow.collection_item_created", {
         data: {
+          contentType: "html",
+          kind: "webflow",
+          postContent: req.body["post-content"],
+          postID: BuildWebflowPostID(req.body._cid, req.body._id),
+          slug: BuildWebflowPostSlug(req.body._cid, req.body.slug),
+          postTitle: req.body.name,
           whPayload: req.body,
           siteID: req.params.siteID,
           encWfToken: site.access_token
-        }
+        } as PostCreationEvent
       })
       logger.debug('sent inngest event')
       break;

@@ -75,8 +75,8 @@ export async function GetSiteByID(siteID: string): Promise<Site> {
   return query.rows[0] as Site
 }
 
-export async function GetSitePostByID(siteID: string, id: string): Promise<SitePost> {
-  const query = await pool.query(`SELECT * FROM site_posts WHERE id = $1 AND site_id = $2`, [siteID, id])
+export async function GetSitePostBySlug(siteID: string, slug: string): Promise<SitePost> {
+  const query = await pool.query(`SELECT * FROM site_posts WHERE site_id = $1 AND slug = $2`, [siteID, slug])
   if (query.rowCount === 0) {
     throw new RowsNotFound()
   }
