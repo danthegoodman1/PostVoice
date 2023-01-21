@@ -80,9 +80,11 @@ async function main() {
   // Webflow endpoints
   const webflowRouter = express.Router()
   webflowRouter.get("/authorize", WebflowHandlers.GetAuthorize)
-  webflowRouter.get("/token", ClerkExpressRequireAuth(), WebflowHandlers.GetToken)
+  webflowRouter.get("/token", WebflowHandlers.GetToken)
+  webflowRouter.post("/token", ClerkExpressRequireAuth(), WebflowHandlers.PostToken)
   webflowRouter.get("/sites", ClerkExpressRequireAuth(), WebflowHandlers.GetSites)
   webflowRouter.get("/sites/:siteID/collections", ClerkExpressRequireAuth(), WebflowHandlers.GetSiteCollections)
+  webflowRouter.get("/collections", ClerkExpressRequireAuth(), WebflowHandlers.GetAllCollections)
   webflowRouter.post("/sites/add", ClerkExpressRequireAuth(), WebflowHandlers.PostAddSite)
   webflowRouter.post("/backfill", ClerkExpressRequireAuth(), WebflowHandlers.PostBackfill)
   app.use("/webflow", webflowRouter)

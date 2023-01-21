@@ -6,7 +6,6 @@ import { Site } from "../db/types/sites"
 
 import { logger, logMsgKey } from "../logger"
 import { decrypt } from "../utils/crypto"
-import { randomID } from "../utils/id"
 import { BreakdownWebflowSiteID, BuildWebflowPostID, BuildWebflowPostSlug, BuildWebflowSiteID } from "../utils/webflow"
 
 export const inngest = new Inngest({ name: "PostVoice" })
@@ -16,18 +15,23 @@ export const CreateWebflowSite = inngest.createStepFunction({
   retries: 20
 }, "api/webflow.create_site", async ({ event, tools }) => {
 
-  const log = logger.child({
-    reqID: event.data.reqID
+  let log = logger.child({
+    reqID: event.data.reqID,
+    inngestStepFunction: "Create Webflow Site"
   })
 
-  log.debug({
-    [logMsgKey]: "running CreateWebflowSite workflow",
-    data: event.data
-  })
+  // log.debug({
+  //   [logMsgKey]: "running CreateWebflowSite workflow",
+  //   data: event.data
+  // })
 
   // Store the site
   tools.run("store new site info", async () => {
+    const stepLog = log.child({
+      inngestStep: 'store new site info'
+    })
     try {
+      stepLog.debug("running step")
       await InsertSite({
         access_token: event.data.encWfToken,
         platform_id: BuildWebflowSiteID(event.data.site._id, event.data.collection._id),
@@ -46,58 +50,74 @@ export const CreateWebflowSite = inngest.createStepFunction({
   // TODO: Update the webhook url
   // Create webhooks
   tools.run("register collection_item_created", async () => {
+    const stepLog = log.child({
+      inngestStep: 'register collection_item_created'
+    })
     try {
+      stepLog.debug("running step")
       const wf = new Webflow({ token: decrypt(event.data.encWfToken, process.env.CRYPTO_KEY!) })
       await wf.createWebhook({
-        siteId: event.data.siteID,
+        siteId: event.data.site._id,
         triggerType: "collection_item_created",
         url: process.env.API_URL + `/wh/webflow/${event.data.siteID}/collection_item_created`
       })
-      log.debug("registered collection_item_created")
+      stepLog.debug("registered collection_item_created")
     } catch (error) {
-      log.error(error)
+      stepLog.error(error)
       throw error
     }
   })
   tools.run("register collection_item_changed", async () => {
+    const stepLog = log.child({
+      inngestStep: 'register collection_item_changed'
+    })
     try {
+      stepLog.debug("running step")
       const wf = new Webflow({ token: decrypt(event.data.encWfToken, process.env.CRYPTO_KEY!) })
       await wf.createWebhook({
-        siteId: event.data.siteID,
+        siteId: event.data.site._id,
         triggerType: "collection_item_changed",
         url: process.env.API_URL + `/wh/webflow/${event.data.siteID}/collection_item_changed`
       })
-      log.debug("registered collection_item_changed")
+      stepLog.debug("registered collection_item_changed")
     } catch (error) {
-      log.error(error)
+      stepLog.error(error)
       throw error
     }
   })
   tools.run("register collection_item_deleted", async () => {
+    const stepLog = log.child({
+      inngestStep: 'register collection_item_deleted'
+    })
     try {
+      stepLog.debug("running step")
       const wf = new Webflow({ token: decrypt(event.data.encWfToken, process.env.CRYPTO_KEY!) })
       await wf.createWebhook({
-        siteId: event.data.siteID,
+        siteId: event.data.site._id,
         triggerType: "collection_item_deleted",
         url: process.env.API_URL + `/wh/webflow/${event.data.siteID}/collection_item_deleted`
       })
-      log.debug("registered collection_item_deleted")
+      stepLog.debug("registered collection_item_deleted")
     } catch (error) {
-      log.error(error)
+      stepLog.error(error)
       throw error
     }
   })
   tools.run("register collection_item_unpublished", async () => {
+    const stepLog = log.child({
+      inngestStep: 'register collection_item_unpublished'
+    })
     try {
+      stepLog.debug("running step")
       const wf = new Webflow({ token: decrypt(event.data.encWfToken, process.env.CRYPTO_KEY!) })
       await wf.createWebhook({
-        siteId: event.data.siteID,
+        siteId: event.data.site._id,
         triggerType: "collection_item_unpublished",
         url: process.env.API_URL + `/wh/webflow/${event.data.siteID}/collection_item_unpublished`
       })
-      log.debug("registered collection_item_unpublished")
+      stepLog.debug("registered collection_item_unpublished")
     } catch (error) {
-      log.error(error)
+      stepLog.error(error)
       throw error
     }
   })

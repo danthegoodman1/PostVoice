@@ -19,27 +19,31 @@ export async function GetAuthorize(req: Request, res: Response){
 }
 
 export async function GetToken(req: Request<{}, {}, {}, {code: string}>, res: Response) {
+  res.redirect(`${process.env.FE_URL}/sites?action=webflow_auth&code=${req.query.code}`)
+}
+
+export async function PostToken(req: Request<{}, {}, {code: string}>, res: Response) {
   const webflow = new Webflow()
   const { access_token } = await webflow.accessToken({
     client_id: process.env.WEBFLOW_CLIENT_ID!,
     client_secret: process.env.WEBFLOW_CLIENT_SECRET!,
-    code: req.query.code,
+    code: req.body.code,
     redirect_uri: process.env.API_URL + "/webflow/token"
   })
 
+  console.log('token', access_token)
   await InsertWebflowAccessToken({
     id: randomID("wftok_"),
     access_token: encrypt(access_token),
     user_id: req.auth.userId
   })
 
-  console.log('token', access_token)
   const wf = new Webflow({ token: access_token });
   const { user } = await wf.authenticatedUser()
   console.log(user)
   const sites = await wf.sites()
   console.log(sites)
-  res.redirect(`${process.env.FE_URL}/sites?action=add_webflow`)
+  res.sendStatus(204)
 }
 
 export async function GetSites(req: Request, res: Response) {
@@ -64,6 +68,34 @@ export async function GetSiteCollections(req: Request<{siteID: string}, {}, {}, 
   } catch (error) {
     if (error instanceof RowsNotFound) {
       return res.status(404).send("token not found")
+    }
+    logger.error(error, "error getting collections")
+    return res.sendStatus(500)
+  }
+}
+
+export async function GetAllCollections(req: Request, res: Response) {
+  // siteID is webflow site id
+  try {
+    const collections: any[] = []
+    const sites = await ListAvailableWebflowSitesForTokens(req.auth.userId)
+    for (const site of sites) {
+      const siteCollections = await ListCollectionsForSite(req.auth.userId, site.token_id, site._id)
+      for (const collection of siteCollections) {
+        collections.push({
+          site: site,
+          tokenID: site.token_id,
+          previewUrl: site.previewUrl,
+          ...collection
+        })
+      }
+    }
+    return res.json({
+      collections
+    })
+  } catch (error) {
+    if (error instanceof RowsNotFound) {
+      return res.json({collections: []})
     }
     logger.error(error, "error getting collections")
     return res.sendStatus(500)

@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { RowsNotFound } from "../db/errors";
 import { GetSites, InsertSite } from "../db/queries/sites";
 import { PostContentType } from "../db/types/site_posts";
 import { logger } from "../logger";
@@ -11,6 +12,11 @@ export async function GetListSites(req: Request, res: Response) {
       sites
     })
   } catch (error) {
+    if (error instanceof RowsNotFound) {
+      return res.json({
+        sites: []
+      })
+    }
     logger.error(error, "error getting sites")
     return res.sendStatus(500)
   }

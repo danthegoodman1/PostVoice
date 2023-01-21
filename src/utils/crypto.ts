@@ -3,16 +3,15 @@ import crypto from 'crypto'
 /**
  * @returns hex encoded string
  */
-export function encrypt(text: string, key = process.env.CRYPTO_TOKEN!): string {
+export function encrypt(text: string, key = process.env.CRYPTO_KEY!): string {
   const iv = crypto.randomBytes(16)
   let cipher = crypto.createCipheriv('aes-256-cbc', Buffer.from(key), iv)
   let encrypted = cipher.update(text)
   encrypted = Buffer.concat([encrypted, cipher.final()])
-  console.log(iv.toString('hex'))
   return Buffer.concat([iv, encrypted]).toString('hex')
 }
 
-export function decrypt(hex: string, key = process.env.CRYPTO_TOKEN!) {
+export function decrypt(hex: string, key = process.env.CRYPTO_KEY!) {
   const iv = Buffer.from(hex.substring(0, 32), 'hex')
   const encData = Buffer.from(hex.substring(32), 'hex')
 
