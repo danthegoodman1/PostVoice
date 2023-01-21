@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { GetSites, InsertSite } from "../db/queries/sites";
+import { PostContentType } from "../db/types/site_posts";
 import { logger } from "../logger";
 import { randomID } from "../utils/id";
 
@@ -44,7 +45,7 @@ export async function PostCreateSite(req: Request<{}, {}, PostCreateSiteReqBody>
 
 
 interface PostCreatePostReqBody {
-  contentType: 'plain' | 'html' | 'markdown',
+  contentType: PostContentType
   content: string
   slug: string
   title: string

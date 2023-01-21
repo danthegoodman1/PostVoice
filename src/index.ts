@@ -15,11 +15,12 @@ import cors from 'cors'
 
 import { logger } from "./logger"
 import { ConnectDB } from "./db"
-import { HandleWebflowCollectionItemCreation, CreateWebflowSite, HandleWebflowDeleteItem } from "./inngest"
+import { HandlePostCreation } from "./inngest"
 import { GetListSites, PostCreatePost, PostCreateSite } from "./sites"
 
 import * as WebflowHandlers from "./handlers/webflow"
 import * as WebhookHandlers from "./handlers/webhook"
+import { CreateWebflowSite, HandleWebflowDeleteItem } from "./inngest/webflow"
 
 declare global {
   namespace Express {
@@ -71,7 +72,7 @@ async function main() {
     res.sendStatus(200)
   })
 
-  const inngestMiddleware = serve("PostVoice", [HandleWebflowCollectionItemCreation, CreateWebflowSite, HandleWebflowDeleteItem])
+  const inngestMiddleware = serve("PostVoice", [HandlePostCreation, CreateWebflowSite, HandleWebflowDeleteItem])
   app.use("/inngest", inngestMiddleware)
 
   // Webflow endpoints
