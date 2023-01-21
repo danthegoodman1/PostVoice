@@ -231,7 +231,6 @@ export const HandlePostCreation = inngest.createStepFunction({
 
   // Record synth run
   tools.run("Record new Synthesis Job", async () => {
-    // TODO: REDO schema
     try {
       await InsertSynthesisJob({
         audio_path: finalFilePath,
