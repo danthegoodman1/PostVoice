@@ -25,7 +25,6 @@ export const ttsClient = new TextToSpeech.TextToSpeechClient()
 export interface PostCreationEvent {
   siteID: string
   kind: SiteKind
-  whPayload: object
   postID: string
   postContent: string
   contentType: PostContentType
@@ -37,7 +36,7 @@ export const HandlePostCreation = inngest.createStepFunction({
   name: "Post Creation",
   retries: 20
 }, "api/post.created", async ({ event, tools }) => {
-  const { siteID, kind, postID, whPayload, postContent, contentType, slug, postTitle } = event.data as PostCreationEvent
+  const { siteID, kind, postID, postContent, contentType, slug, postTitle } = event.data as PostCreationEvent
 
   // Check if item exists
   const post = tools.run("Check if post exists in DB", async () => {

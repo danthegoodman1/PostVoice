@@ -11,7 +11,7 @@ export async function HandleWebflowSiteEvent(req: Request<{siteID: string, event
   const site = await GetSiteByID(req.params.siteID)
   switch (req.params.event) {
     case "collection_item_created":
-      await inngest.send("api/webflow.collection_item_created", {
+      await inngest.send("api/post.created", {
         data: {
           contentType: "html",
           kind: "webflow",
@@ -19,7 +19,6 @@ export async function HandleWebflowSiteEvent(req: Request<{siteID: string, event
           postID: BuildWebflowPostID(req.body._cid, req.body._id),
           slug: BuildWebflowPostSlug(req.body._cid, req.body.slug),
           postTitle: req.body.name,
-          whPayload: req.body,
           siteID: req.params.siteID,
           encWfToken: site.access_token
         } as PostCreationEvent
@@ -27,7 +26,8 @@ export async function HandleWebflowSiteEvent(req: Request<{siteID: string, event
       logger.debug('sent inngest event')
       break;
     case "collection_item_changed":
-      await inngest.send("api/webflow.collection_item_changed", {
+      // TODO: Update
+      await inngest.send("api/post.created", {
         data: {
           whPayload: req.body,
           siteID: req.params.siteID,
