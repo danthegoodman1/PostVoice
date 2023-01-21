@@ -20,11 +20,13 @@ import { GetListSites, PostCreatePost, PostCreateSite } from "./sites"
 
 import * as WebflowHandlers from "./handlers/webflow"
 import * as WebhookHandlers from "./handlers/webhook"
-import { CreateWebflowSite, HandleWebflowDeleteItem } from "./inngest/webflow"
+import { BackfillWebflowSite, CreateWebflowSite, HandleWebflowDeleteItem } from "./inngest/webflow"
 
 declare global {
   namespace Express {
-    interface Request extends StrictAuthProp {}
+    interface Request extends StrictAuthProp {
+      id: string
+    }
   }
 }
 
@@ -54,7 +56,7 @@ async function main() {
     logger.debug("using HTTP logger")
     app.use((req: any, res, next) => {
       const reqID = uuidv4()
-      req.reqID = reqID
+      req.id = reqID
       req.log = log.child({ req_id: reqID }, true)
       req.log.info({ req })
       res.on("finish", () => req.log.info({ res }))
@@ -72,7 +74,7 @@ async function main() {
     res.sendStatus(200)
   })
 
-  const inngestMiddleware = serve("PostVoice", [HandlePostCreation, CreateWebflowSite, HandleWebflowDeleteItem])
+  const inngestMiddleware = serve("PostVoice", [HandlePostCreation, CreateWebflowSite, HandleWebflowDeleteItem, BackfillWebflowSite])
   app.use("/inngest", inngestMiddleware)
 
   // Webflow endpoints
@@ -82,6 +84,7 @@ async function main() {
   webflowRouter.get("/sites", ClerkExpressRequireAuth(), WebflowHandlers.GetSites)
   webflowRouter.get("/sites/:siteID/collections", ClerkExpressRequireAuth(), WebflowHandlers.GetSiteCollections)
   webflowRouter.post("/sites/add", ClerkExpressRequireAuth(), WebflowHandlers.PostAddSite)
+  webflowRouter.post("/backfill", ClerkExpressRequireAuth(), WebflowHandlers.PostBackfill)
   app.use("/webflow", webflowRouter)
 
   // Site endpoints

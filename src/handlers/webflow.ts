@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import Webflow from "webflow-api";
 import { RowsNotFound } from "../db/errors";
+import { GetSiteByID } from "../db/queries/sites";
 import { GetWebflowToken, InsertWebflowAccessToken } from "../db/queries/webflow";
 import { inngest } from "../inngest";
 import { logger } from "../logger";
@@ -54,6 +55,7 @@ export async function GetSites(req: Request, res: Response) {
 }
 
 export async function GetSiteCollections(req: Request<{siteID: string}, {}, {}, {tokenID: string}>, res: Response) {
+  // siteID is webflow site id
   try {
     const collections = await ListCollectionsForSite(req.auth.userId, req.params.siteID, req.query.tokenID)
     return res.json({
@@ -69,6 +71,7 @@ export async function GetSiteCollections(req: Request<{siteID: string}, {}, {}, 
 }
 
 export async function PostAddSite(req: Request<{}, {}, { tokenID: string, siteID: string, collectionID: string }>, res: Response) {
+  // siteID is webflow site id
   try {
     const token = await GetWebflowToken(req.auth.userId, req.body.tokenID)
     const wf = new Webflow({
@@ -91,7 +94,8 @@ export async function PostAddSite(req: Request<{}, {}, { tokenID: string, siteID
         site: site,
         collection: collection,
         siteID,
-        encWfToken: token.access_token
+        encWfToken: token.access_token,
+        reqID: req.id
       },
       user: {
         id: req.auth.userId
@@ -101,7 +105,31 @@ export async function PostAddSite(req: Request<{}, {}, { tokenID: string, siteID
       siteID
     })
   } catch (error) {
-    logger.error(error, "error getting sites")
+    logger.error(error, "error adding site")
+    return res.sendStatus(500)
+  }
+}
+
+export async function PostBackfill(req: Request<{}, {}, {siteID: string}>, res: Response) {
+  // siteID is our internal site ID
+  try {
+    // Get the site info
+    const site = await GetSiteByID(req.body.siteID)
+    if (site.kind !== "webflow") {
+      return res.status(400).send("site is not webflow")
+    }
+    await inngest.send("api/webflow.site.backfill", {
+      data: {
+        site,
+        reqID: req.id
+      },
+      user: {
+        id: req.auth.userId
+      }
+    })
+    return res.sendStatus(200)
+  } catch (error) {
+    logger.error(error, "error starting backfill")
     return res.sendStatus(500)
   }
 }

@@ -30,13 +30,24 @@ export interface PostCreationEvent {
   contentType: PostContentType
   slug: string
   postTitle: string
+  reqID: string
 }
 
 export const HandlePostCreation = inngest.createStepFunction({
   name: "Post Creation",
   retries: 20
 }, "api/post.created", async ({ event, tools }) => {
-  const { siteID, kind, postID, postContent, contentType, slug, postTitle } = event.data as PostCreationEvent
+  const { siteID, kind, postID, postContent, contentType, slug, postTitle, reqID } = event.data as PostCreationEvent
+
+  const log = logger.child({
+    siteID,
+    kind,
+    postID,
+    contentType,
+    slug,
+    postTitle,
+    reqID
+  })
 
   // Check if item exists
   const post = tools.run("Check if post exists in DB", async () => {
@@ -47,7 +58,7 @@ export const HandlePostCreation = inngest.createStepFunction({
       if (error instanceof RowsNotFound) {
         return null
       }
-      logger.error(error)
+      log.error(error)
       throw error
     }
   }) as SitePost | null
@@ -56,7 +67,7 @@ export const HandlePostCreation = inngest.createStepFunction({
     // TODO: We need to see if the content changed
       // TODO: If changed, we regenerate
       // TODO: If not changed, abort
-    logger.warn({
+    log.warn({
       [logMsgKey]: "CMS item already exists in DB, aborting",
       eventData: event.data
     })
@@ -65,12 +76,12 @@ export const HandlePostCreation = inngest.createStepFunction({
 
   const originalHash = tools.run("Get original content hash", async () => {
     try {
-      logger.debug("getting original content hash")
+      log.debug("getting original content hash")
       const originalHash = md5(postContent)
-      logger.debug(`got original hash: ${originalHash}`)
+      log.debug(`got original hash: ${originalHash}`)
       return originalHash
     } catch (error) {
-      logger.error(error)
+      log.error(error)
       throw error
     }
   })
@@ -82,7 +93,7 @@ export const HandlePostCreation = inngest.createStepFunction({
   const postParts = tools.run("Split post into parts", async () => {
     try {
       // TODO: Handle based on content type
-      logger.debug("splitting post into parts")
+      log.debug("splitting post into parts")
       const postBody = postContent
 
       const $ = cheerio.load(postBody)
@@ -93,19 +104,19 @@ export const HandlePostCreation = inngest.createStepFunction({
 
       const aPartTooLong = parts.some((part) => part.length > 3000)
       if (aPartTooLong) {
-        logger.error("cms part too long")
+        log.error("cms part too long")
         throw new CMSPartTooLong()
       }
 
       return parts
     } catch (error) {
-      logger.error(error)
+      log.error(error)
       throw error
     }
   })
 
   if (postParts.length === 0) {
-    logger.warn("post had no parts, exiting")
+    log.warn("post had no parts, exiting")
     return
   }
 
@@ -113,7 +124,7 @@ export const HandlePostCreation = inngest.createStepFunction({
   for (let i = 0; i < postParts.length; i++) {
     const [partID, durationMS, chars] = tools.run("Synthesize audio part", async () => {
       try {
-        logger.debug(`splitting part ${i}`)
+        log.debug(`splitting part ${i}`)
         const partID = randomID("audpart_")
 
         // Synthesize speech
@@ -129,15 +140,15 @@ export const HandlePostCreation = inngest.createStepFunction({
           }
         })
         const duration = new Date().getTime() - start
-        logger.debug("synthesized speech for part")
+        log.debug("synthesized speech for part")
 
         // Upload audio file to s3
         await UploadS3FileBuffer("parts/" + partID + ".mp3", Buffer.from(response.audioContent as Uint8Array))
-        logger.debug("uploaded part to s3")
+        log.debug("uploaded part to s3")
 
         return [partID, duration, postParts[i].length]
       } catch (error) {
-        logger.error(error)
+        log.error(error)
         throw error
       }
     })
@@ -158,7 +169,7 @@ export const HandlePostCreation = inngest.createStepFunction({
   const finalFilePath = tools.run("Combine audio parts to single file", async () => {
 
     try {
-      logger.debug("combining audio parts")
+      log.debug("combining audio parts")
       const finalFilePath = `synth/${finalFileID}.mp3`
       const partFileNames = []
       for (let i = 0; i < itemParts.length; i++) {
@@ -169,38 +180,38 @@ export const HandlePostCreation = inngest.createStepFunction({
         // Download the file
         const ws = createWriteStream(fileName)
         await DownloadS3File(itemParts[i].audioPath, ws)
-        logger.debug("downloaded part from s3")
+        log.debug("downloaded part from s3")
 
         // // Add one second of silence to end of file
         // await execShellCommand(`ffmpeg -i ${fileName} -af "apad=pad_dur=0.1" ${paddedFile}`)
-        // logger.debug("appended silence")
+        // log.debug("appended silence")
 
         // // Remove the old file
         // await unlink(fileName)
 
-        logger.debug("deleting local parts")
+        log.debug("deleting local parts")
       }
 
       // Concat the parts
       const finalFile = `/tmp/${finalFileID}.mp3`
       await execShellCommand(`ffmpeg ${partFileNames.map(f => `-i ${f}`).join(" ")} -filter_complex "${partFileNames.map((f, i) => `[${i}:a]`).join("")}concat=n=${partFileNames.length}:v=0:a=1" ${finalFile}`)
-      logger.debug("merged parts")
+      log.debug("merged parts")
 
       const rs = createReadStream(finalFile)
       await UploadS3FileStream(finalFilePath, rs)
-      logger.debug("uploaded final audio file to s3")
+      log.debug("uploaded final audio file to s3")
 
       for (let i = 0; i < partFileNames.length; i++) {
         await unlink(partFileNames[i])
         await DeleteS3File(itemParts[i].audioPath)
       }
-      logger.debug("deleted local padded parts")
+      log.debug("deleted local padded parts")
 
       await unlink(finalFile)
 
       return finalFilePath
     } catch (error) {
-      logger.error(error)
+      log.error(error)
       throw error
     }
   })
@@ -209,7 +220,7 @@ export const HandlePostCreation = inngest.createStepFunction({
   tools.run("Record new Post", async () => {
     try {
       const ourPostID = randomID("post_")
-      logger.debug("inserting new post into DB")
+      log.debug("inserting new post into DB")
       await InsertPost({
         audio_path: finalFilePath,
         id: ourPostID,
@@ -221,7 +232,7 @@ export const HandlePostCreation = inngest.createStepFunction({
         site_platform_id: postID
       })
     } catch (error) {
-      logger.error(error)
+      log.error(error)
       throw error
     }
   })
@@ -229,7 +240,7 @@ export const HandlePostCreation = inngest.createStepFunction({
   // Record synth run
   tools.run("Record new Synthesis Job", async () => {
     try {
-      logger.debug("storing synthesis job")
+      log.debug("storing synthesis job")
       await InsertSynthesisJob({
         audio_path: finalFilePath,
         chars: itemParts.reduce((accumulator, item) => accumulator + item.chars, 0),
@@ -240,10 +251,10 @@ export const HandlePostCreation = inngest.createStepFunction({
         user_id: user.id
       })
     } catch (error) {
-      logger.error(error)
+      log.error(error)
       throw error
     }
   })
 
-  logger.debug("done post creation workflow")
+  log.debug("done post creation workflow")
 })

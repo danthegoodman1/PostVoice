@@ -1,10 +1,13 @@
 import { Inngest } from "inngest"
 import Webflow from "webflow-api"
+import { PostCreationEvent } from "."
 import { InsertSite } from "../db/queries/sites"
+import { Site } from "../db/types/sites"
 
 import { logger, logMsgKey } from "../logger"
 import { decrypt } from "../utils/crypto"
-import { BuildWebflowSiteID } from "../utils/webflow"
+import { randomID } from "../utils/id"
+import { BreakdownWebflowSiteID, BuildWebflowPostID, BuildWebflowPostSlug, BuildWebflowSiteID } from "../utils/webflow"
 
 export const inngest = new Inngest({ name: "PostVoice" })
 
@@ -12,7 +15,12 @@ export const CreateWebflowSite = inngest.createStepFunction({
   name: "Create Webflow Site",
   retries: 20
 }, "api/webflow.create_site", async ({ event, tools }) => {
-  logger.debug({
+
+  const log = logger.child({
+    reqID: event.data.reqID
+  })
+
+  log.debug({
     [logMsgKey]: "running CreateWebflowSite workflow",
     data: event.data
   })
@@ -30,7 +38,7 @@ export const CreateWebflowSite = inngest.createStepFunction({
         user_id: event.user!.id,
       })
     } catch (error) {
-      logger.error(error)
+      log.error(error)
       throw error
     }
   })
@@ -45,9 +53,9 @@ export const CreateWebflowSite = inngest.createStepFunction({
         triggerType: "collection_item_created",
         url: process.env.API_URL + `/wh/webflow/${event.data.siteID}/collection_item_created`
       })
-      logger.debug("registered collection_item_created")
+      log.debug("registered collection_item_created")
     } catch (error) {
-      logger.error(error)
+      log.error(error)
       throw error
     }
   })
@@ -59,9 +67,9 @@ export const CreateWebflowSite = inngest.createStepFunction({
         triggerType: "collection_item_changed",
         url: process.env.API_URL + `/wh/webflow/${event.data.siteID}/collection_item_changed`
       })
-      logger.debug("registered collection_item_changed")
+      log.debug("registered collection_item_changed")
     } catch (error) {
-      logger.error(error)
+      log.error(error)
       throw error
     }
   })
@@ -73,9 +81,9 @@ export const CreateWebflowSite = inngest.createStepFunction({
         triggerType: "collection_item_deleted",
         url: process.env.API_URL + `/wh/webflow/${event.data.siteID}/collection_item_deleted`
       })
-      logger.debug("registered collection_item_deleted")
+      log.debug("registered collection_item_deleted")
     } catch (error) {
-      logger.error(error)
+      log.error(error)
       throw error
     }
   })
@@ -87,17 +95,82 @@ export const CreateWebflowSite = inngest.createStepFunction({
         triggerType: "collection_item_unpublished",
         url: process.env.API_URL + `/wh/webflow/${event.data.siteID}/collection_item_unpublished`
       })
-      logger.debug("registered collection_item_unpublished")
+      log.debug("registered collection_item_unpublished")
     } catch (error) {
-      logger.error(error)
+      log.error(error)
       throw error
     }
   })
 
-  logger.debug("done CreateWebflowSite workflow")
+  log.debug("done CreateWebflowSite workflow")
 }, )
 
 export const HandleWebflowDeleteItem = inngest.createStepFunction("Webflow Collection Item Delete", "api/webflow.collection_item_deleted", async ({ event, tools }) => {
   // TODO: Delete file from DB
   // TODO: Delete file from S3
+})
+
+export const BackfillWebflowSite = inngest.createStepFunction({
+  name: "Backfill Webflow Site",
+  retries: 20
+}, "api/webflow.site.backfill", async ({ event, tools }) => {
+  const site = event.data.site as Site
+
+  let log = logger.child({
+    siteID: site.id,
+    userID: event.user?.id,
+    reqID: event.data.reqID
+  })
+
+  let moreItems = true
+  let offset = 0
+  const pageSize = 10
+  while (moreItems) {
+    const { incr, maybeMore } = tools.run("handle webflow collection items page", async () => {
+      const wf = new Webflow({
+        token: decrypt(site.access_token!)
+      })
+      log.debug({
+        offset
+      }, "getting collection items")
+      const wfSiteInfo = BreakdownWebflowSiteID(site.platform_id!)
+      const items = await wf.items({
+        collectionId: wfSiteInfo.collectionID,
+        limit: 10
+      })
+
+      for (const item of items) {
+        const postID = BuildWebflowPostID(item._cid, item._id)
+        const slug = BuildWebflowPostSlug(item._cid, item.slug)
+        log.debug({
+          postID,
+          slug,
+          siteID: site.id
+        }, "sending backfilled api/post.created event")
+        await inngest.send("api/post.created", {
+          data: {
+            contentType: "html",
+            kind: "webflow",
+            postContent: (item as any)["post-body"], // there according to API,
+            postID,
+            slug,
+            postTitle: item.name,
+            siteID: site.id,
+            encWfToken: site.access_token,
+            reqID: "child_" + event.data.reqID
+          } as PostCreationEvent
+        })
+      }
+
+      return {
+        incr: offset + pageSize,
+        maybeMore: items.length < pageSize
+      }
+    })
+
+    offset += incr
+    moreItems = maybeMore
+  }
+
+  log.debug("reached end of items")
 })
