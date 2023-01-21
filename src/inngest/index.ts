@@ -6,16 +6,19 @@ import TextToSpeech from '@google-cloud/text-to-speech'
 
 import { logger, logMsgKey } from "../logger"
 import { randomID } from "../utils/id"
-import { GetWebflowCMSItemByID, InsertWebflowCMSItem, InsertWebflowSite } from "../db/queries/webflow"
-import { CMSItemChangedDuringProcessing, CMSPartTooLong } from "./errors"
+import { GetSitePostByID, InsertPost, InsertSite } from "../db/queries/sites"
+import { CMSPartTooLong } from "./errors"
 import { DeleteS3File, DownloadS3File, UploadS3FileBuffer, UploadS3FileStream } from "../storage"
 import { createReadStream, createWriteStream } from "fs"
 import { execShellCommand } from "../utils/exec"
 import { unlink } from "fs/promises"
-import { InsertUser } from "../db/queries/user"
+import { GetUser, InsertUser } from "../db/queries/user"
 import { decrypt } from "../utils/crypto"
 import { InsertSynthesisJob } from "../db/queries/synthesis_jobs"
 import { RowsNotFound } from "../db/errors"
+import { BuildWebflowPostID, BuildWebflowSiteID } from "../utils/webflow"
+import { User } from "../db/types/user"
+import { SitePost } from "../db/types/site_posts"
 
 export const inngest = new Inngest({ name: "PostVoice" })
 
@@ -30,28 +33,25 @@ export const CreateWebflowSite = inngest.createStepFunction({
     data: event.data
   })
 
-  tools.run("store new site info", async () => {
-    // const userID = randomID("user_")
-    try {
-      await InsertUser("testuser")
-    } catch (error) {
-      logger.error(error)
-      throw error
-    }
-  })
-
   // Store the site
   tools.run("store new site info", async () => {
-    // const userID = randomID("user_")
     try {
-      console.log('tokne', decrypt(event.data.encWfToken, process.env.CRYPTO_KEY!))
-      await InsertWebflowSite("testuser", event.data.siteID, event.data.encWfToken)
+      await InsertSite({
+        access_token: event.data.encWfToken,
+        platform_id: BuildWebflowSiteID(event.data.site._id, event.data.collection._id),
+        id: event.data.siteID,
+        img_url: event.data.site.previewUrl || null,
+        kind: "webflow",
+        name: event.data.site.name,
+        user_id: event.user!.id,
+      })
     } catch (error) {
       logger.error(error)
       throw error
     }
   })
 
+  // TODO: Update the webhook url
   // Create webhooks
   tools.run("register collection_item_created", async () => {
     try {
@@ -59,7 +59,7 @@ export const CreateWebflowSite = inngest.createStepFunction({
       await wf.createWebhook({
         siteId: event.data.siteID,
         triggerType: "collection_item_created",
-        url: process.env.API_URL + `/webflow/wh/${event.data.siteID}/collection_item_created`
+        url: process.env.API_URL + `/wh/webflow/${event.data.siteID}/collection_item_created`
       })
       logger.debug("registered collection_item_created")
     } catch (error) {
@@ -73,7 +73,7 @@ export const CreateWebflowSite = inngest.createStepFunction({
       await wf.createWebhook({
         siteId: event.data.siteID,
         triggerType: "collection_item_changed",
-        url: process.env.API_URL + `/webflow/wh/${event.data.siteID}/collection_item_changed`
+        url: process.env.API_URL + `/wh/webflow/${event.data.siteID}/collection_item_changed`
       })
       logger.debug("registered collection_item_changed")
     } catch (error) {
@@ -87,7 +87,7 @@ export const CreateWebflowSite = inngest.createStepFunction({
       await wf.createWebhook({
         siteId: event.data.siteID,
         triggerType: "collection_item_deleted",
-        url: process.env.API_URL + `/webflow/wh/${event.data.siteID}/collection_item_deleted`
+        url: process.env.API_URL + `/wh/webflow/${event.data.siteID}/collection_item_deleted`
       })
       logger.debug("registered collection_item_deleted")
     } catch (error) {
@@ -101,7 +101,7 @@ export const CreateWebflowSite = inngest.createStepFunction({
       await wf.createWebhook({
         siteId: event.data.siteID,
         triggerType: "collection_item_unpublished",
-        url: process.env.API_URL + `/webflow/wh/${event.data.siteID}/collection_item_unpublished`
+        url: process.env.API_URL + `/wh/webflow/${event.data.siteID}/collection_item_unpublished`
       })
       logger.debug("registered collection_item_unpublished")
     } catch (error) {
@@ -119,21 +119,24 @@ export const HandleWebflowCollectionItemCreation = inngest.createStepFunction({
 }, "api/webflow.collection_item_created", async ({ event, tools }) => {
   logger.debug("running HandleWebflowItemCreation step function")
 
-  // Verify item does not exist
-  const exists = tools.run("Check if CMS item exists in DB", async () => {
+  // Check if item exists
+  const post = tools.run("Check if CMS item exists in DB", async () => {
     try {
-      await GetWebflowCMSItemByID(event.data.siteID, event.data.whPayload._cid, event.data.whPayload._id)
-      return true
+      const post = await GetSitePostByID(event.data.siteID, BuildWebflowPostID(event.data.whPayload._cid, event.data.whPayload._id))
+      return post
     } catch (error) {
       if (error instanceof RowsNotFound) {
-        return false
+        return null
       }
       logger.error(error)
       throw error
     }
-  })
+  }) as SitePost | null
 
-  if (exists) {
+  if (post !== null) {
+    // TODO: We need to see if the content changed
+      // TODO: If changed, we regenerate
+      // TODO: If not changed, abort
     logger.warn({
       [logMsgKey]: "CMS item already exists in DB, aborting",
       eventData: event.data
@@ -158,6 +161,9 @@ export const HandleWebflowCollectionItemCreation = inngest.createStepFunction({
     }
   })
 
+  const user = tools.run("get user info", async () => {
+    return await GetUser(post!.user_id)
+  }) as User
 
   const postParts = tools.run("Split post into parts", async () => {
     try {
@@ -289,42 +295,19 @@ export const HandleWebflowCollectionItemCreation = inngest.createStepFunction({
     }
   })
 
-  // get the cms item again, verify we have same hash
-  const currentHash = tools.run("Get original content hash", async () => {
-    try {
-      logger.debug("getting current content hash")
-      const wf = new Webflow({ token: decrypt(event.data.encWfToken, process.env.CRYPTO_KEY!) })
-      const cmsItem = await wf.item({
-        collectionId: event.data.whPayload._cid,
-        itemId: event.data.whPayload._id
-      })
-      const currentHash = md5((cmsItem as any)["post-body"])
-      logger.debug(`got current hash: ${currentHash}`)
-      return currentHash
-    } catch (error) {
-      logger.error(error)
-      throw error
-    }
-  })
-
-
-  if (currentHash !== originalHash) {
-    throw new CMSItemChangedDuringProcessing()
-  }
-
   // Record cms item into DB
   tools.run("Record new Webflow CMS item", async () => {
     try {
       logger.debug("inserting new webflow cms item to DB")
-      await InsertWebflowCMSItem({
+      await InsertPost({
         audio_path: finalFilePath,
-        id: event.data.whPayload._id,
-        md5: currentHash,
+        id: BuildWebflowPostID(event.data.whPayload._cid, event.data.whPayload._id),
+        md5: originalHash,
         site_id: event.data.siteID,
         title: event.data.whPayload.name,
-        user_id: "testuser",
+        user_id: user.id,
         slug: event.data.whPayload.slug,
-        collection_id: event.data.whPayload._cid
+        site_platform_id: BuildWebflowPostID(event.data.whPayload._cid, event.data.whPayload._id)
       })
     } catch (error) {
       logger.error(error)
@@ -341,7 +324,7 @@ export const HandleWebflowCollectionItemCreation = inngest.createStepFunction({
         ms: itemParts.reduce((accumulator, item) => accumulator + item.synthTimeMS, 0),
         id: randomID("job_"),
         job: `webflow/${event.data.siteID}/${event.data.whPayload.slug}`,
-        user_id: "testuser"
+        user_id: user.id
       })
     } catch (error) {
       logger.error(error)
@@ -355,14 +338,4 @@ export const HandleWebflowCollectionItemCreation = inngest.createStepFunction({
 export const HandleWebflowDeleteItem = inngest.createStepFunction("Webflow Collection Item Delete", "api/webflow.collection_item_deleted", async ({ event, tools }) => {
   // TODO: Delete file from DB
   // TODO: Delete file from S3
-})
-
-export const HandleWebflowItemChanged = inngest.createStepFunction("Webflow Collection Item Changed", "api/webflow.collection_item_changed", async ({ event, tools }) => {
-  // TODO: Get the content
-  // TODO: Check if the hash of the content is different
-  // TODO: Check if the slug is different
-    // TODO: If only slug is different then update DB
-  // TODO: if content different, make new file...
-  // TODO: Update DB with new audio path (and slug?)
-  // TODO: Delete old audio path
 })
