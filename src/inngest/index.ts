@@ -232,6 +232,7 @@ export const HandlePostCreation = inngest.createStepFunction({
   // Record synth run
   tools.run("Record new Synthesis Job", async () => {
     try {
+      logger.debug("storing synthesis job")
       await InsertSynthesisJob({
         audio_path: finalFilePath,
         chars: itemParts.reduce((accumulator, item) => accumulator + item.chars, 0),
