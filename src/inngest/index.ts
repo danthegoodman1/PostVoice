@@ -59,7 +59,7 @@ export const CreateWebflowSite = inngest.createStepFunction({
       await wf.createWebhook({
         siteId: event.data.siteID,
         triggerType: "collection_item_created",
-        url: process.env.API_URL + `/webflow/wh/${event.data.siteID}/collection_item_created`
+        url: process.env.API_URL + `/wh/webflow/${event.data.siteID}/collection_item_created`
       })
       logger.debug("registered collection_item_created")
     } catch (error) {
@@ -73,7 +73,7 @@ export const CreateWebflowSite = inngest.createStepFunction({
       await wf.createWebhook({
         siteId: event.data.siteID,
         triggerType: "collection_item_changed",
-        url: process.env.API_URL + `/webflow/wh/${event.data.siteID}/collection_item_changed`
+        url: process.env.API_URL + `/wh/webflow/${event.data.siteID}/collection_item_changed`
       })
       logger.debug("registered collection_item_changed")
     } catch (error) {
@@ -87,7 +87,7 @@ export const CreateWebflowSite = inngest.createStepFunction({
       await wf.createWebhook({
         siteId: event.data.siteID,
         triggerType: "collection_item_deleted",
-        url: process.env.API_URL + `/webflow/wh/${event.data.siteID}/collection_item_deleted`
+        url: process.env.API_URL + `/wh/webflow/${event.data.siteID}/collection_item_deleted`
       })
       logger.debug("registered collection_item_deleted")
     } catch (error) {
@@ -101,7 +101,7 @@ export const CreateWebflowSite = inngest.createStepFunction({
       await wf.createWebhook({
         siteId: event.data.siteID,
         triggerType: "collection_item_unpublished",
-        url: process.env.API_URL + `/webflow/wh/${event.data.siteID}/collection_item_unpublished`
+        url: process.env.API_URL + `/wh/webflow/${event.data.siteID}/collection_item_unpublished`
       })
       logger.debug("registered collection_item_unpublished")
     } catch (error) {
