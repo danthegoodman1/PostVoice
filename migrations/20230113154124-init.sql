@@ -9,16 +9,28 @@ CREATE TABLE users (
 )
 ;
 
+CREATE TABLE webflow_access_tokens (
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE DO NOTHING,
+  id TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  access_token TEXT NOT NULL,
+
+  PRIMARY KEY(user_id, id)
+)
+;
+
 CREATE TABLE sites (
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   kind TEXT NOT NULL,
   id TEXT NOT NULL,
-  platform_id TEXT NOT NULL, -- the id on the platform, webflow is {site_id}_{collection_id}
+  platform_id TEXT, -- the id on the platform, webflow is {site_id}_{collection_id}
   name TEXT NOT NULL,
   img_url TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  access_token TEXT NOT NULL,
+  access_token TEXT, -- only for webflow
 
   PRIMARY KEY(id)
 )
@@ -28,7 +40,7 @@ CREATE INDEX sites_by_user ON sites(user_id);
 CREATE TABLE site_posts (
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   site_id TEXT NOT NULL REFERENCES sites(id) ON DELETE CASCADE,
-  site_platform_id TEXT NOT NULL REFERENCES sites(platform_id) ON DELETE CASCADE, -- webflow is {collection_id}_{id}
+  site_platform_id TEXT, -- webflow is {collection_id}_{id}
   id TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -60,18 +72,6 @@ CREATE TABLE synthesis_jobs (
   PRIMARY KEY(user_id, id)
 )
 ;
-
-
-CREATE TABLE webflow_access_tokens (
-  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE DO NOTHING,
-  id TEXT NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-
-  access_token TEXT NOT NULL,
-
-  PRIMARY KEY(user_id, id)
-)
 
 -- +migrate Down
 DROP TABLE users;

@@ -1,8 +1,9 @@
 import { Request, Response } from "express";
-import { GetSites } from "../db/queries/sites";
+import { GetSites, InsertSite } from "../db/queries/sites";
 import { logger } from "../logger";
+import { randomID } from "../utils/id";
 
-export async function HandleListSites(req: Request, res: Response) {
+export async function GetListSites(req: Request, res: Response) {
   try {
     const sites = await GetSites(req.auth.userId)
     return res.json({
@@ -10,6 +11,33 @@ export async function HandleListSites(req: Request, res: Response) {
     })
   } catch (error) {
     logger.error(error, "error getting sites")
+    return res.sendStatus(500)
+  }
+}
+
+interface PostCreateSiteReqBody {
+  id: string
+  kind: 'custom'
+  name: string
+}
+
+export async function PostCreateSite(req: Request<{}, {}, PostCreateSiteReqBody>, res: Response) {
+  try {
+    const siteID = randomID("site_")
+    await InsertSite({
+      access_token: null,
+      id: siteID,
+      img_url: null,
+      kind: req.body.kind,
+      name: req.body.name,
+      platform_id: null,
+      user_id: req.auth.userId
+    })
+    return res.json({
+      siteID
+    })
+  } catch (error) {
+    logger.error(error, "error creating site")
     return res.sendStatus(500)
   }
 }
