@@ -20,7 +20,8 @@ export async function HandleWebflowSiteEvent(req: Request<{siteID: string, event
           slug: BuildWebflowPostSlug(req.body._cid, req.body.slug),
           postTitle: req.body.name,
           siteID: req.params.siteID,
-          encWfToken: site.access_token
+          encWfToken: site.access_token,
+          reqID: req.id
         } as PostCreationEvent
       })
       logger.debug('sent inngest event')
