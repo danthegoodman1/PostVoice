@@ -63,17 +63,6 @@ export const HandlePostCreation = inngest.createStepFunction({
     }
   }) as SitePost | null
 
-  if (post !== null) {
-    // TODO: We need to see if the content changed
-      // TODO: If changed, we regenerate
-      // TODO: If not changed, abort
-    log.warn({
-      [logMsgKey]: "CMS item already exists in DB, aborting",
-      eventData: event.data
-    })
-    return
-  }
-
   const originalHash = tools.run("Get original content hash", async () => {
     try {
       log.debug("getting original content hash")
@@ -85,6 +74,16 @@ export const HandlePostCreation = inngest.createStepFunction({
       throw error
     }
   })
+
+  if (post !== null && post.md5 === originalHash) {
+    log.warn("post has not changed, aborting")
+    return
+  } else if (post) {
+    log.info({
+      oldHash: post.md5,
+      newHash: originalHash,
+    }, "post has different content hash, regenerating")
+  }
 
   const user = tools.run("get user info", async () => {
     try {
