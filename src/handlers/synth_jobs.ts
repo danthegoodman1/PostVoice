@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { ListSynthesisJobs, SumSynthJobForRange } from "../db/queries/synthesis_jobs";
 import { logger } from "../logger";
 
-export async function ListSynthJobs(req: Request<{}, {}, {offset?: string}>, res: Response) {
+export async function ListSynthJobs(req: Request<{}, {}, {offset?: Date}>, res: Response) {
   try {
     const jobs = await ListSynthesisJobs(req.auth.userId, req.body.offset)
     return res.json({
