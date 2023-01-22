@@ -145,18 +145,21 @@ export const BackfillWebflowSite = inngest.createStepFunction({
   let moreItems = true
   let offset = 0
   const pageSize = 10
+  let found = 0
   while (moreItems) {
-    const { incr, maybeMore } = tools.run("handle webflow collection items page", async () => {
+    const foundItems = tools.run("handle webflow collection items page", async () => {
       const wf = new Webflow({
         token: decrypt(site.access_token!)
       })
       log.debug({
-        offset
+        offset,
+        moreItems
       }, "getting collection items")
       const wfSiteInfo = BreakdownWebflowSiteID(site.platform_id!)
       const items = await wf.items({
         collectionId: wfSiteInfo.collectionID,
-        limit: 10
+        limit: 10,
+        offset
       })
 
       for (const item of items) {
@@ -181,16 +184,17 @@ export const BackfillWebflowSite = inngest.createStepFunction({
           } as PostCreationEvent
         })
       }
-
       return {
-        incr: offset + pageSize,
-        maybeMore: items.length < pageSize
+        length: items.length
       }
     })
 
-    offset += incr
-    moreItems = maybeMore
+    offset += pageSize
+    moreItems = foundItems.length >= pageSize
+    found += foundItems.length
   }
 
-  log.debug("reached end of items")
+  log.debug({
+    found
+  }, "reached end of webflow backfill")
 })
