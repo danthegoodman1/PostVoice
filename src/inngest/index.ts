@@ -5,7 +5,7 @@ import TextToSpeech from '@google-cloud/text-to-speech'
 
 import { logger, logMsgKey } from "../logger"
 import { randomID } from "../utils/id"
-import { GetSitePostBySlug, InsertPost } from "../db/queries/sites"
+import { GetSiteByID, GetSitePostBySlug, InsertPost } from "../db/queries/sites"
 import { CMSPartTooLong } from "./errors"
 import { DeleteS3File, DownloadS3File, UploadS3FileBuffer, UploadS3FileStream } from "../storage"
 import { createReadStream, createWriteStream } from "fs"
@@ -87,7 +87,13 @@ export const HandlePostCreation = inngest.createStepFunction({
   })
 
   const user = tools.run("get user info", async () => {
-    return await GetUser(post!.user_id)
+    try {
+      const site = await GetSiteByID(siteID)
+      return await GetUser(site.user_id)
+    } catch (error) {
+      log.error(error)
+      throw error
+    }
   }) as User
 
   const postParts = tools.run("Split post into parts", async () => {

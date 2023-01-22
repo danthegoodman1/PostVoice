@@ -31,18 +31,12 @@ export async function PostToken(req: Request<{}, {}, {code: string}>, res: Respo
     redirect_uri: process.env.API_URL + "/webflow/token"
   })
 
-  console.log('token', access_token)
   await InsertWebflowAccessToken({
     id: randomID("wftok_"),
     access_token: encrypt(access_token),
     user_id: req.auth.userId
   })
 
-  const wf = new Webflow({ token: access_token });
-  const { user } = await wf.authenticatedUser()
-  console.log(user)
-  const sites = await wf.sites()
-  console.log(sites)
   res.sendStatus(204)
 }
 
@@ -150,6 +144,10 @@ export async function PostBackfill(req: Request<{}, {}, {siteID: string}>, res: 
     if (site.kind !== "webflow") {
       return res.status(400).send("site is not webflow")
     }
+    logger.debug({
+      reqID: req.id,
+      siteID: req.body.siteID
+    }, "sending backfill event")
     await inngest.send("api/webflow.site.backfill", {
       data: {
         site,
@@ -159,7 +157,7 @@ export async function PostBackfill(req: Request<{}, {}, {siteID: string}>, res: 
         id: req.auth.userId
       }
     })
-    return res.sendStatus(200)
+    return res.sendStatus(204)
   } catch (error) {
     logger.error(error, "error starting backfill")
     return res.sendStatus(500)
