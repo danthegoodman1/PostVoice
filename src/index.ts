@@ -21,6 +21,7 @@ import { GetListSites, PostCreatePost, PostCreateSite } from "./sites"
 import * as WebflowHandlers from "./handlers/webflow"
 import * as WebhookHandlers from "./handlers/webhook"
 import { BackfillWebflowSite, CreateWebflowSite, HandleWebflowDeleteItem } from "./inngest/webflow"
+import { GetCurrentMonthUsage, ListSynthJobs } from "./handlers/synth_jobs"
 
 declare global {
   namespace Express {
@@ -100,6 +101,13 @@ async function main() {
   siteRouter.post("/", PostCreateSite)
   siteRouter.post("/:siteID/post", PostCreatePost)
   app.use("/sites", siteRouter)
+
+  // Usage endpoints
+  const usageRouter = express.Router()
+  usageRouter.use(ClerkExpressRequireAuth())
+  usageRouter.get("/jobs", ListSynthJobs)
+  usageRouter.get("/month", GetCurrentMonthUsage)
+  app.use("/usage", usageRouter)
 
   // Webhook endpoints
   const webhookHandler = express.Router()
