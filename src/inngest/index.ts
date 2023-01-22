@@ -5,7 +5,7 @@ import TextToSpeech from '@google-cloud/text-to-speech'
 
 import { logger, logMsgKey } from "../logger"
 import { randomID } from "../utils/id"
-import { GetSiteByID, GetSitePostBySlug, InsertPost } from "../db/queries/sites"
+import { GetSiteByID, GetSitePostBySlug, InsertPost, UpdatePost } from "../db/queries/sites"
 import { CMSPartTooLong } from "./errors"
 import { DeleteS3File, DownloadS3File, UploadS3FileBuffer, UploadS3FileStream } from "../storage"
 import { createReadStream, createWriteStream } from "fs"
@@ -63,25 +63,25 @@ export const HandlePostCreation = inngest.createStepFunction({
     }
   }) as SitePost | null
 
-  const originalHash = tools.run("Get original content hash", async () => {
+  const contentHash = tools.run("Get original content hash", async () => {
     try {
       log.debug("getting original content hash")
-      const originalHash = md5(postContent)
-      log.debug(`got original hash: ${originalHash}`)
-      return originalHash
+      const contentHash = md5(postContent)
+      log.debug(`got content hash: ${contentHash}`)
+      return contentHash
     } catch (error) {
       log.error(error)
       throw error
     }
   })
 
-  if (post !== null && post.md5 === originalHash) {
+  if (post !== null && post.md5 === contentHash) {
     log.warn("post has not changed, aborting")
     return
   } else if (post) {
     log.info({
       oldHash: post.md5,
-      newHash: originalHash,
+      newHash: contentHash,
     }, "post has different content hash, regenerating")
   }
 
@@ -222,25 +222,37 @@ export const HandlePostCreation = inngest.createStepFunction({
   })
 
   // Record cms item into DB
-  tools.run("Record new Post", async () => {
-    try {
-      const ourPostID = randomID("post_")
-      log.debug("inserting new post into DB")
-      await InsertPost({
-        audio_path: finalFilePath,
-        id: ourPostID,
-        md5: originalHash,
-        site_id: siteID,
-        title: postTitle,
-        user_id: user.id,
-        slug: slug,
-        site_platform_id: postID
-      })
-    } catch (error) {
-      log.error(error)
-      throw error
-    }
-  })
+  if (!post) {
+    tools.run("Record new Post", async () => {
+      try {
+        const ourPostID = randomID("post_")
+        log.debug("inserting new post into DB")
+        await InsertPost({
+          audio_path: finalFilePath,
+          id: ourPostID,
+          md5: contentHash,
+          site_id: siteID,
+          title: postTitle,
+          user_id: user.id,
+          slug: slug,
+          site_platform_id: postID
+        })
+      } catch (error) {
+        log.error(error)
+        throw error
+      }
+    })
+  } else {
+    tools.run("Update Post", async () => {
+      try {
+        log.debug("updating post in DB")
+        await UpdatePost(siteID, slug, contentHash, finalFilePath)
+      } catch (error) {
+        log.error(error)
+        throw error
+      }
+    })
+  }
 
   // Record synth run
   tools.run("Record new Synthesis Job", async () => {

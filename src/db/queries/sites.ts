@@ -31,6 +31,11 @@ export async function InsertPost(params: SitePost) {
   return
 }
 
+export async function UpdatePost(siteID: string, slug: string, md5: string, audioPath: string) {
+  await pool.query(`UPDATE site_posts SET md5 = $3, audio_path = $4 WHERE site_id = $1 AND slug = $2`, [siteID, slug, md5, audioPath])
+  return
+}
+
 export async function GetSiteByID(siteID: string): Promise<Site> {
   const query = await pool.query(`SELECT * FROM sites WHERE id = $1`, [siteID])
   if (query.rowCount === 0) {
