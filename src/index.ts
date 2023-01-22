@@ -15,7 +15,7 @@ import cors from 'cors'
 
 import { logger } from "./logger"
 import { ConnectDB } from "./db"
-import { HandlePostCreation } from "./inngest"
+import { HandlePostGeneration } from "./inngest"
 import { GetListSites, PostCreatePost, PostCreateSite } from "./sites"
 
 import * as WebflowHandlers from "./handlers/webflow"
@@ -78,7 +78,7 @@ async function main() {
     res.sendStatus(200)
   })
 
-  const inngestMiddleware = serve("PostVoice", [HandlePostCreation, CreateWebflowSite, HandleWebflowDeleteItem, BackfillWebflowSite])
+  const inngestMiddleware = serve("PostVoice", [HandlePostGeneration, CreateWebflowSite, HandleWebflowDeleteItem, BackfillWebflowSite])
   app.use("/inngest", inngestMiddleware)
 
   // Webflow endpoints

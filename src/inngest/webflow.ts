@@ -169,8 +169,8 @@ export const BackfillWebflowSite = inngest.createStepFunction({
           postID,
           slug,
           siteID: site.id
-        }, "sending backfilled api/post.created event")
-        await inngest.send("api/post.created", {
+        }, "sending backfilled api/post.generate event")
+        await inngest.send("api/post.generate", {
           data: {
             contentType: "html",
             kind: "webflow",

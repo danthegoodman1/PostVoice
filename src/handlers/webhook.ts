@@ -11,7 +11,7 @@ export async function HandleWebflowSiteEvent(req: Request<{siteID: string, event
   const site = await GetSiteByID(req.params.siteID)
   switch (req.params.event) {
     case "collection_item_created":
-      await inngest.send("api/post.created", {
+      await inngest.send("api/post.generate", {
         data: {
           contentType: "html",
           kind: "webflow",
@@ -28,7 +28,7 @@ export async function HandleWebflowSiteEvent(req: Request<{siteID: string, event
       break;
     case "collection_item_changed":
       // TODO: Update
-      await inngest.send("api/post.created", {
+      await inngest.send("api/post.generate", {
         data: {
           whPayload: req.body,
           siteID: req.params.siteID,

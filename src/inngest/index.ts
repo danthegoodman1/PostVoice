@@ -33,10 +33,10 @@ export interface PostCreationEvent {
   reqID: string
 }
 
-export const HandlePostCreation = inngest.createStepFunction({
-  name: "Post Creation",
+export const HandlePostGeneration = inngest.createStepFunction({
+  name: "Post Generation",
   retries: 20
-}, "api/post.created", async ({ event, tools }) => {
+}, "api/post.generate", async ({ event, tools }) => {
   const { siteID, kind, postID, postContent, contentType, slug, postTitle, reqID } = event.data as PostCreationEvent
 
   const log = logger.child({
