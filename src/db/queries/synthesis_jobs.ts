@@ -11,7 +11,7 @@ export async function ListSynthesisJobs(userID: string, offset?: Date) {
   if (offset) {
     params.push(offset)
   }
-  const q = await pool.query(`SELECT * FROM synthesis_jobs WHERE user_id = $1 ${offset ? 'AND created_at < $2' : ''} LIMIT 10`, params)
+  const q = await pool.query(`SELECT * FROM synthesis_jobs WHERE user_id = $1 ${offset ? 'AND created_at < $2' : ''} ORDER BY created_at DESC LIMIT 10`, params)
   return q.rows as SynthesisJob[]
 }
 
