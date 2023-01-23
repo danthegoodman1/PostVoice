@@ -27,12 +27,12 @@ export async function InsertSite(params: Site) {
 }
 
 export async function InsertPost(params: SitePost) {
-  await pool.query(`INSERT INTO site_posts (user_id, site_id, id, site_platform_id, title, audio_path, md5, slug) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`, [params.user_id, params.site_id, params.id, params.site_platform_id, params.title, params.audio_path, params.md5, params.slug])
+  await pool.query(`INSERT INTO site_posts (user_id, site_id, id, site_platform_id, title, md5, slug) VALUES ($1, $2, $3, $4, $5, $6, $7)`, [params.user_id, params.site_id, params.id, params.site_platform_id, params.title, params.md5, params.slug])
   return
 }
 
-export async function UpdatePost(siteID: string, slug: string, md5: string, audioPath: string) {
-  await pool.query(`UPDATE site_posts SET md5 = $3, audio_path = $4 WHERE site_id = $1 AND slug = $2`, [siteID, slug, md5, audioPath])
+export async function UpdatePost(siteID: string, slug: string, md5: string) {
+  await pool.query(`UPDATE site_posts SET md5 = $3 WHERE site_id = $1 AND slug = $2`, [siteID, slug, md5])
   return
 }
 

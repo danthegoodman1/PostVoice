@@ -48,7 +48,6 @@ CREATE TABLE site_posts (
   title TEXT NOT NULL,
   slug TEXT NOT NULL, -- webflow is {collection_id}_{slug}
   md5 TEXT NOT NULL,
-  audio_path TEXT NOT NULL,
 
   PRIMARY KEY(site_id, slug)
 )
@@ -69,7 +68,6 @@ CREATE TABLE synthesis_jobs (
   site_id TEXT NOT NULL,
   post_slug TEXT NOT NULL,
   FOREIGN KEY (site_id, post_slug) REFERENCES site_posts(site_id, slug) ON DELETE NO ACTION,
-  audio_path TEXT NOT NULL,
 
   PRIMARY KEY(user_id, id)
 )

@@ -8,5 +8,4 @@ export interface SynthesisJob extends basicInfoWithUserID {
    */
   site_id: string
   post_slug: string
-  audio_path: string
 }

@@ -166,14 +166,11 @@ export const HandlePostGeneration = inngest.createStepFunction({
     })
   }
 
-  const finalFileID = tools.run("Generate final file id", () => {
-    return randomID("")
-  })
-
   // combine all parts to single file, write new single file to s3, record in db
   const finalFilePath = tools.run("Combine audio parts to single file", async () => {
 
     try {
+      const finalFileID = `${siteID}_${slug}` // default format
       log.debug("combining audio parts")
       const finalFilePath = `synth/${finalFileID}.mp3`
       const partFileNames = []
@@ -228,7 +225,6 @@ export const HandlePostGeneration = inngest.createStepFunction({
         const ourPostID = randomID("post_")
         log.debug("inserting new post into DB")
         await InsertPost({
-          audio_path: finalFilePath,
           id: ourPostID,
           md5: contentHash,
           site_id: siteID,
@@ -246,7 +242,7 @@ export const HandlePostGeneration = inngest.createStepFunction({
     tools.run("Update Post", async () => {
       try {
         log.debug("updating post in DB")
-        await UpdatePost(siteID, slug, contentHash, finalFilePath)
+        await UpdatePost(siteID, slug, contentHash)
       } catch (error) {
         log.error(error)
         throw error
@@ -259,7 +255,6 @@ export const HandlePostGeneration = inngest.createStepFunction({
     try {
       log.debug("storing synthesis job")
       await InsertSynthesisJob({
-        audio_path: finalFilePath,
         chars: itemParts.reduce((accumulator, item) => accumulator + item.chars, 0),
         ms: itemParts.reduce((accumulator, item) => accumulator + item.synthTimeMS, 0),
         id: randomID("job_"),

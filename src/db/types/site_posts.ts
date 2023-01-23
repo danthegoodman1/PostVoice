@@ -6,7 +6,6 @@ export interface SitePost extends basicInfoWithUserID {
   title: string
   slug: string
   md5: string
-  audio_path: string
 }
 
 export type PostContentType = 'plain' | 'html' | 'markdown'
