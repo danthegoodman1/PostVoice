@@ -8,7 +8,18 @@ import { BuildWebflowPostID, BuildWebflowPostSlug } from "../utils/webflow";
 
 export async function HandleWebflowSiteEvent(req: Request<{siteID: string, event: string}>, res: Response){
   console.log('got webhook event', req.params.event, req.body)
-  const site = await GetSiteByID(req.params.siteID)
+  const postKey = req.query.postKey
+  if (!postKey) {
+    return res.status(401).send("post key not provided")
+  }
+  const siteID = req.query.siteID
+  if (!siteID || typeof siteID !== 'string') {
+    return res.status(400).send("missing siteID")
+  }
+  const site = await GetSiteByID(siteID)
+  if (site.post_key !== postKey) {
+    return res.status(403).send("invalid post key")
+  }
   switch (req.params.event) {
     case "collection_item_created":
       await inngest.send("api/post.generate", {

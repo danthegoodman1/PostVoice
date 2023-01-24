@@ -22,7 +22,7 @@ export interface InsertSiteParams {
 }
 
 export async function InsertSite(params: Site) {
-  await pool.query(`INSERT INTO sites (user_id, id, access_token, platform_id, img_url, name, kind) VALUES ($1, $2, $3, $4, $5, $6, $7)`, [params.user_id, params.id, params.access_token, params.platform_id, params.img_url, params.name, params.kind])
+  await pool.query(`INSERT INTO sites (user_id, id, access_token, platform_id, img_url, name, kind, post_key) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`, [params.user_id, params.id, params.access_token, params.platform_id, params.img_url, params.name, params.kind, params.post_key])
   return
 }
 

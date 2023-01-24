@@ -22,6 +22,8 @@ import * as WebflowHandlers from "./handlers/webflow"
 import * as WebhookHandlers from "./handlers/webhook"
 import { BackfillWebflowSite, CreateWebflowSite, HandleWebflowDeleteItem } from "./inngest/webflow"
 import { GetCurrentMonthUsage, ListSynthJobs } from "./handlers/synth_jobs"
+import { GetSiteByID } from "./db/queries/sites"
+import { RowsNotFound } from "./db/errors"
 
 declare global {
   namespace Express {
@@ -99,8 +101,13 @@ async function main() {
   siteRouter.use(ClerkExpressRequireAuth())
   siteRouter.get("/", GetListSites)
   siteRouter.post("/", PostCreateSite)
-  siteRouter.post("/:siteID/post", PostCreatePost)
   app.use("/sites", siteRouter)
+
+  // No auth post
+  const postRouter = express.Router()
+  // TODO: Add some custom token auth
+  postRouter.post("/", PostCreatePost)
+  app.use("/sites", postRouter)
 
   // Usage endpoints
   const usageRouter = express.Router()
@@ -111,7 +118,7 @@ async function main() {
 
   // Webhook endpoints
   const webhookHandler = express.Router()
-  webhookHandler.post("/webflow/:siteID/:event", WebhookHandlers.HandleWebflowSiteEvent)
+  webhookHandler.post("/webflow/:event", WebhookHandlers.HandleWebflowSiteEvent)
   webhookHandler.post("/clerk", WebhookHandlers.HandleClerkEvent)
   app.use("/wh", webhookHandler)
 

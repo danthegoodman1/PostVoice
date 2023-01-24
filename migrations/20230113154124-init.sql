@@ -30,6 +30,7 @@ CREATE TABLE sites (
   img_url TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  post_key TEXT NOT NULL,
   access_token TEXT, -- only for webflow
 
   PRIMARY KEY(id)

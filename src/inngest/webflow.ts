@@ -6,6 +6,7 @@ import { Site } from "../db/types/sites"
 
 import { logger } from "../logger"
 import { decrypt } from "../utils/crypto"
+import { randomID } from "../utils/id"
 import { BreakdownWebflowSiteID, BuildWebflowPostID, BuildWebflowPostSlug, BuildWebflowSiteID } from "../utils/webflow"
 
 export const inngest = new Inngest({ name: "PostVoice" })
@@ -26,12 +27,13 @@ export const CreateWebflowSite = inngest.createStepFunction({
   // })
 
   // Store the site
-  tools.run("store new site info", async () => {
+  const postKey = tools.run("store new site info", async () => {
     const stepLog = log.child({
       inngestStep: 'store new site info'
     })
     try {
       stepLog.debug("running step")
+      const postKey = randomID("pk_")
       await InsertSite({
         access_token: event.data.encWfToken,
         platform_id: BuildWebflowSiteID(event.data.site._id, event.data.collection._id),
@@ -40,6 +42,7 @@ export const CreateWebflowSite = inngest.createStepFunction({
         kind: "webflow",
         name: `${event.data.site.name} - ${event.data.collection.name}`,
         user_id: event.user!.id,
+        post_key: postKey
       })
     } catch (error) {
       log.error(error)
@@ -59,7 +62,7 @@ export const CreateWebflowSite = inngest.createStepFunction({
       await wf.createWebhook({
         siteId: event.data.site._id,
         triggerType: "collection_item_created",
-        url: process.env.API_URL + `/wh/webflow/${event.data.siteID}/collection_item_created`
+        url: process.env.API_URL + `/wh/webflow/${event.data.siteID}/collection_item_created?pk=${postKey}` // query params are preserved
       })
       stepLog.debug("registered collection_item_created")
     } catch (error) {
@@ -77,7 +80,7 @@ export const CreateWebflowSite = inngest.createStepFunction({
       await wf.createWebhook({
         siteId: event.data.site._id,
         triggerType: "collection_item_changed",
-        url: process.env.API_URL + `/wh/webflow/${event.data.siteID}/collection_item_changed`
+        url: process.env.API_URL + `/wh/webflow/${event.data.siteID}/collection_item_changed?pk=${postKey}` // query params are preserved
       })
       stepLog.debug("registered collection_item_changed")
     } catch (error) {
@@ -95,7 +98,7 @@ export const CreateWebflowSite = inngest.createStepFunction({
       await wf.createWebhook({
         siteId: event.data.site._id,
         triggerType: "collection_item_deleted",
-        url: process.env.API_URL + `/wh/webflow/${event.data.siteID}/collection_item_deleted`
+        url: process.env.API_URL + `/wh/webflow/${event.data.siteID}/collection_item_deleted?pk=${postKey}` // query params are preserved
       })
       stepLog.debug("registered collection_item_deleted")
     } catch (error) {
@@ -113,7 +116,7 @@ export const CreateWebflowSite = inngest.createStepFunction({
       await wf.createWebhook({
         siteId: event.data.site._id,
         triggerType: "collection_item_unpublished",
-        url: process.env.API_URL + `/wh/webflow/${event.data.siteID}/collection_item_unpublished`
+        url: process.env.API_URL + `/wh/webflow/${event.data.siteID}/collection_item_unpublished?pk=${postKey}` // query params are preserved
       })
       stepLog.debug("registered collection_item_unpublished")
     } catch (error) {
