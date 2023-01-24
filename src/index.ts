@@ -1,11 +1,10 @@
 import * as dotenv from "dotenv"
 dotenv.config()
 
-import express, { NextFunction, Request, Response } from "express"
+import express from "express"
 import bunyan from "bunyan"
 import { v4 as uuidv4 } from "uuid"
 import { serve } from "inngest/express"
-import Webflow from "webflow-api"
 import {
   ClerkExpressRequireAuth,
   StrictAuthProp,
@@ -22,8 +21,6 @@ import * as WebflowHandlers from "./handlers/webflow"
 import * as WebhookHandlers from "./handlers/webhook"
 import { BackfillWebflowSite, CreateWebflowSite, HandleWebflowDeleteItem } from "./inngest/webflow"
 import { GetCurrentMonthUsage, ListSynthJobs } from "./handlers/synth_jobs"
-import { GetSiteByID } from "./db/queries/sites"
-import { RowsNotFound } from "./db/errors"
 
 declare global {
   namespace Express {
@@ -37,7 +34,9 @@ const listenPort = process.env.PORT || "8080"
 
 async function main() {
   const app = express()
-  app.use(express.json())
+  app.use(express.json({
+    limit: '10mb'
+  }))
   app.disable("x-powered-by")
   app.use(cors())
 
