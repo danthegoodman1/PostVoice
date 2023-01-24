@@ -106,7 +106,7 @@ async function main() {
   const postRouter = express.Router()
   // TODO: Add some custom token auth
   postRouter.post("/", PostCreatePost)
-  app.use("/sites", postRouter)
+  app.use("/posts", postRouter)
 
   // Usage endpoints
   const usageRouter = express.Router()

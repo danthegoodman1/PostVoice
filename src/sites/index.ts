@@ -18,7 +18,7 @@ export async function GetListSites(req: Request, res: Response) {
         sites: []
       })
     }
-    logger.error(error, "error getting sites")
+    logger.error(error, "error listing sites")
     return res.sendStatus(500)
   }
 }
@@ -85,6 +85,7 @@ export async function PostCreatePost(req: Request<{}, {}, PostCreatePostReqBody>
         reqID: req.id
       } as PostCreationEvent
     })
+    return res.sendStatus(201)
   } catch (error) {
     if (error instanceof RowsNotFound) {
       return res.status(404).send("site not found")
