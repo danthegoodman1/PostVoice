@@ -11,7 +11,8 @@ const s3 = new S3({
   credentials: {
     accessKeyId: process.env.S3_KEY_ID!,
     secretAccessKey: process.env.S3_KEY_SECRET!
-  }
+  },
+  region: process.env.S3_REGION ? process.env.S3_REGION : 'us-east-1'
 })
 
 export async function UploadS3FileStream(fileName: string, readStream: fs.ReadStream) {
